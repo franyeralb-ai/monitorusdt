@@ -1,0 +1,12 @@
+{
+  "name": "monitor-usdt",
+  "version": "1.0.0",
+  "description": "MONITOR USDT - Plataforma en vivo de compra, liquidación y auditoría de activos digitales (USDT) en Binance P2P para Banesco y Banco de Venezuela",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

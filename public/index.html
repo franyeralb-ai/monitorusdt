@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MONITOR USDT - Compra USDT</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' rx='11' fill='%231E3A8A'/%3E%3Cpath d='M9.5 31V13H15L22 23.2L29 13H34.5V31H29.5V20.2L22 30.5L14.5 20.2V31H9.5Z' fill='white'/%3E%3Cpath d='M22 25.5L25.8 31H18.2L22 25.5Z' fill='%2338BDF8'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Pantalla de Presentación + Acceso Privado (Split Layout) -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-bg-decor"></div>
+
+    <div class="login-split-container">
+      <!-- Lado Izquierdo: Página de Presentación para Clientes (MONITOR USDT) -->
+      <div class="login-hero">
+        <div class="hero-brand-header">
+          <div class="hero-logo-box" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="58" height="58">
+              <rect width="44" height="44" rx="12" fill="url(#aurexGradHero)"/>
+              <path d="M9.5 31V13H15L22 23.2L29 13H34.5V31H29.5V20.2L22 30.5L14.5 20.2V31H9.5Z" fill="white"/>
+              <path d="M22 25.5L25.8 31H18.2L22 25.5Z" fill="#38BDF8"/>
+              <defs>
+                <linearGradient id="aurexGradHero" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0F172A"/>
+                  <stop offset="0.55" stop-color="#1E3A8A"/>
+                  <stop offset="1" stop-color="#2563EB"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span class="hero-brand-name">MONITOR <strong>USDT</strong></span>
+        </div>
+
+        <h1 class="hero-headline">
+          La forma más inteligente de <span class="hero-gradient-text">comprar USDT:</span> mejor tasa, cero riesgos y total comodidad.
+        </h1>
+
+        <p class="hero-description">
+          Obtén más activos digitales (USDT) por tus bolívares con una <strong>tasa preferencial inferior a la del mercado tradicional</strong>. Olvídate de lidiar con decenas de transferencias o contrapartes desconocidas: nuestro equipo de <strong>comerciantes verificados</strong> ejecuta todo tu ciclo por <strong>Banesco</strong> y <strong>Banco de Venezuela</strong> mientras tú auditas cada operación en vivo.
+        </p>
+
+        <div class="hero-features-grid">
+          <div class="hero-feature-card">
+            <div class="hero-feature-icon">📉</div>
+            <div>
+              <h3>Tasa Más Baja Garantizada</h3>
+              <p>Ahorra en cada operación comprando por debajo del precio de otras plataformas y mesas de cambio.</p>
+            </div>
+          </div>
+
+          <div class="hero-feature-card">
+            <div class="hero-feature-icon">🛡️</div>
+            <div>
+              <h3>Comerciantes 100% Verificados</h3>
+              <p>Tu capital está protegido en manos de operadores profesionales con reputación y liquidez inmediata.</p>
+            </div>
+          </div>
+
+          <div class="hero-feature-card">
+            <div class="hero-feature-icon">⚡</div>
+            <div>
+              <h3>Ejecución Delegada sin Estrés</h3>
+              <p>Nosotros realizamos todas las compras y pagos bancarios por ti; tú solo recibes el monto neto en tu billetera.</p>
+            </div>
+          </div>
+
+          <div class="hero-feature-card">
+            <div class="hero-feature-icon">📊</div>
+            <div>
+              <h3>Auditoría en Vivo al Milímetro</h3>
+              <p>Observa en tiempo real cada orden ejecutada, tu tasa promedio exacta y descarga tu reporte contable en Excel.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-trust-bar">
+          <div class="trust-pill"><span class="live-dot-mini"></span> Mejor Tasa VES / USDT</div>
+          <div class="trust-pill">🏦 Operativa Directa Banesco &amp; BDV</div>
+          <div class="trust-pill">🔒 Liquidación Rápida y Segura</div>
+        </div>
+      </div>
+
+      <!-- Lado Derecho: Tarjeta de Inicio de Sesión -->
+      <div class="login-card-wrap">
+        <div class="login-card">
+          <div class="login-logo" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="46" height="46">
+              <rect width="44" height="44" rx="12" fill="url(#aurexGradLogin)"/>
+              <path d="M9.5 31V13H15L22 23.2L29 13H34.5V31H29.5V20.2L22 30.5L14.5 20.2V31H9.5Z" fill="white"/>
+              <path d="M22 25.5L25.8 31H18.2L22 25.5Z" fill="#38BDF8"/>
+              <defs>
+                <linearGradient id="aurexGradLogin" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0F172A"/>
+                  <stop offset="0.55" stop-color="#1E3A8A"/>
+                  <stop offset="1" stop-color="#2563EB"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h2>MONITOR <span>USDT</span></h2>
+          <p class="text-muted">Ingresa tu clave asignada para consultar tus compras en vivo y descargar tus estados de cuenta.</p>
+
+          <form id="loginForm" class="login-form">
+            <div class="input-with-btn">
+              <input type="password" id="loginPasswordInput" placeholder="Clave de acceso autorizada..." autocomplete="current-password" required autofocus />
+              <button type="button" class="btn-eye" data-target="loginPasswordInput">👁️</button>
+            </div>
+            <div id="loginErrorMsg" class="login-error hidden">Clave de acceso incorrecta.</div>
+            <button type="submit" class="btn btn-start-cycle" id="btnLoginSubmit">
+              🔓 Acceder a Monitor USDT
+            </button>
+          </form>
+          <div class="login-security-foot">
+            <span>🛡️ Cifrado HMAC-SHA256</span>
+            <span>•</span>
+            <span>⚡ Binance SAPI Live Sync</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido Protegido del Panel -->
+  <div id="appWrapper" class="hidden">
+  <!-- Barra Superior -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="46" height="46">
+          <rect width="44" height="44" rx="11" fill="url(#aurexGradNav)"/>
+          <path d="M9.5 31V13H15L22 23.2L29 13H34.5V31H29.5V20.2L22 30.5L14.5 20.2V31H9.5Z" fill="white"/>
+          <path d="M22 25.5L25.8 31H18.2L22 25.5Z" fill="#38BDF8"/>
+          <defs>
+            <linearGradient id="aurexGradNav" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0F172A"/>
+              <stop offset="0.55" stop-color="#1E3A8A"/>
+              <stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title-row">
+          <h1>MONITOR <span>USDT</span></h1>
+        </div>
+        <p class="subtitle">Liquidación Contable USDT en Tiempo Real • Banesco &amp; Banco de Venezuela</p>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <div id="roleBadge" class="status-badge status-admin">
+        <span id="roleBadgeText">👑 ROL: ADMIN SUPREMO</span>
+      </div>
+      <div id="apiStatusBadge" class="status-badge status-ok">
+        <span class="dot"></span>
+        <span id="apiStatusText">Binance Ping: -- ms</span>
+      </div>
+      <button class="btn btn-secondary super-admin-only" id="btnToggleMerchantsPanel">
+        🛡️ Comerciantes
+      </button>
+      <button class="btn btn-secondary admin-only" id="btnToggleClientsPanel">
+        👥 Clientes
+      </button>
+      <button class="btn btn-secondary admin-only" id="btnToggleApiPanel">
+        ⚙️ Configurar APIs de Binance
+      </button>
+      <button class="btn btn-danger-outline" id="btnLogout" title="Bloquear panel">
+        🔒 Salir
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Alerta / Notificación global -->
+    <div id="alertBox" class="alert hidden"></div>
+
+    <!-- Apartado de Gestión de Comerciantes (Exclusivo ADMIN SUPREMO) -->
+    <section id="merchantsSection" class="card api-card hidden">
+      <div class="card-header">
+        <div>
+          <h2>🛡️ Gestión de Usuarios de Rol Comerciante (Rango Supremo)</h2>
+          <p class="text-muted">
+            Crea usuarios con rol <strong>Comerciante</strong>. Cada comerciante tendrá su propio sistema independiente para configurar sus propias APIs de Binance, registrar a sus propios clientes y gestionar sus ciclos de Banesco y Banco de Venezuela, sin tener tu rango de Admin Supremo.
+          </p>
+        </div>
+        <button class="btn-icon" id="btnCloseMerchantsPanel" title="Cerrar panel">✕</button>
+      </div>
+
+      <form id="createMerchantForm" class="api-form" style="margin-bottom: 18px;">
+        <div class="form-row align-end">
+          <div class="form-group flex-1">
+            <label for="inputMerchantName">Nombre del Comerciante</label>
+            <input type="text" id="inputMerchantName" placeholder="Ej: Carlos P2P / Socio..." autocomplete="off" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="inputMerchantPassword">Clave de Acceso del Comerciante</label>
+            <div class="input-with-btn">
+              <input type="text" id="inputMerchantPassword" placeholder="Ej: comerciante2026" autocomplete="off" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            ➕ Crear Usuario Comerciante
+          </button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre del Comerciante</th>
+              <th>Clave de Acceso</th>
+              <th>Estado API Binance</th>
+              <th class="text-center">Clientes Propios</th>
+              <th class="text-center">Ciclos Guardados</th>
+              <th>Fecha de Registro</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="merchantsTableBody">
+            <tr>
+              <td colspan="7" class="empty-row">No hay comerciantes registrados todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Apartado de Gestión de Clientes (ADMIN SUPREMO y COMERCIANTES) -->
+    <section id="clientsSection" class="card api-card hidden">
+      <div class="card-header">
+        <div>
+          <h2>👥 Gestión de Usuarios / Clientes</h2>
+          <p class="text-muted">
+            Registra a tus clientes con un <strong>Nombre</strong> y una <strong>Clave de acceso</strong>. Cuando el cliente entre al sistema con su clave, verá únicamente sus ciclos asignados y su ciclo en curso en tiempo real.
+          </p>
+        </div>
+        <button class="btn-icon" id="btnCloseClientsPanel" title="Cerrar panel">✕</button>
+      </div>
+
+      <form id="createClientForm" class="api-form" style="margin-bottom: 18px;">
+        <div class="form-row align-end">
+          <div class="form-group flex-1">
+            <label for="inputClientName">Nombre del Cliente</label>
+            <input type="text" id="inputClientName" placeholder="Ej: Charles" autocomplete="off" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="inputClientPassword">Clave de Acceso para el Cliente</label>
+            <div class="input-with-btn">
+              <input type="text" id="inputClientPassword" placeholder="Ej: charles2026" autocomplete="off" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            ➕ Crear Usuario Cliente
+          </button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre del Cliente</th>
+              <th>Clave de Acceso</th>
+              <th>Fecha de Registro</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody">
+            <tr>
+              <td colspan="4" class="empty-row">No hay clientes registrados todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Apartado de Configuración de APIs de Binance -->
+    <section id="apiConfigSection" class="card api-card hidden">
+      <div class="card-header">
+        <div>
+          <h2>🔐 Configuración de APIs de Binance</h2>
+          <p class="text-muted">
+            Ingresa tu <strong>API Key</strong> y <strong>Secret Key</strong> de Binance para consultar tus órdenes de compra P2P en tiempo real (Endpoint oficial <code>/sapi/v1/c2c/orderMatch/listUserOrderHistory</code>).
+          </p>
+        </div>
+        <button class="btn-icon" id="btnCloseApiPanel" title="Cerrar panel">✕</button>
+      </div>
+
+      <form id="apiConfigForm" class="api-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="inputApiKey">Binance API Key</label>
+            <div class="input-with-btn">
+              <input type="password" id="inputApiKey" placeholder="Pega aquí tu API Key de Binance..." autocomplete="off" required />
+              <button type="button" class="btn-eye" data-target="inputApiKey">👁️</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSecretKey">Binance Secret Key</label>
+            <div class="input-with-btn">
+              <input type="password" id="inputSecretKey" placeholder="Pega aquí tu Secret Key de Binance..." autocomplete="off" required />
+              <button type="button" class="btn-eye" data-target="inputSecretKey">👁️</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-form-actions">
+          <button type="button" class="btn btn-outline" id="btnTestConnection">
+            🔌 Probar Conexión con Binance
+          </button>
+          <button type="submit" class="btn btn-primary">
+            💾 Guardar Configuración API
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Selector de Pestañas por Banco (Ciclos simultáneos e independientes) -->
+    <div class="bank-tabs-bar">
+      <button type="button" class="bank-tab active" id="tabBtnBanesco" data-bank="Banesco">
+        <div class="bank-tab-left">
+          <span class="bank-tab-dot" id="tabDotBanesco"></span>
+          <div>
+            <div class="bank-tab-title">🏦 Ciclo Banesco</div>
+            <div class="bank-tab-sub" id="tabSubBanesco">Inactivo</div>
+          </div>
+        </div>
+        <div class="bank-tab-right" id="tabStatsBanesco">0.00 USDT</div>
+      </button>
+
+      <button type="button" class="bank-tab" id="tabBtnBDV" data-bank="Banco de Venezuela">
+        <div class="bank-tab-left">
+          <span class="bank-tab-dot" id="tabDotBDV"></span>
+          <div>
+            <div class="bank-tab-title">🏛️ Ciclo Banco de Venezuela</div>
+            <div class="bank-tab-sub" id="tabSubBDV">Inactivo</div>
+          </div>
+        </div>
+        <div class="bank-tab-right" id="tabStatsBDV">0.00 USDT</div>
+      </button>
+    </div>
+
+    <!-- Tarjetas de Resumen (KPIs Principales de la Pestaña Seleccionada) -->
+    <section class="kpi-grid">
+      <!-- KPI 1: VES Pagados -->
+      <div class="kpi-card kpi-ves">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiVesTitle">TOTAL VES PAGADOS (BANESCO)</span>
+          <span class="kpi-icon">🇻🇪 Bs.</span>
+        </div>
+        <div class="kpi-value" id="kpiTotalVes">Bs. 0,00</div>
+        <div class="kpi-footer" id="kpiOrdersBreakdown">
+          <span>En <strong id="kpiOrderCount">0</strong> órdenes contabilizadas</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Tasa Promedio Ponderada -->
+      <div class="kpi-card kpi-rate">
+        <div class="kpi-header">
+          <span class="kpi-title">TASA PROMEDIO DE COMPRA</span>
+          <span class="kpi-icon">⚖️ Tasa</span>
+        </div>
+        <div class="kpi-value" id="kpiAvgRateGross">Bs. 0,00 / USDT</div>
+        <div class="kpi-footer">
+          <span>Efectiva neta: <strong id="kpiAvgRateNet">Bs. 0,00</strong> • Con servicio: <strong id="kpiAvgRateClient" class="text-gold">Bs. 0,00</strong></span>
+        </div>
+      </div>
+
+      <!-- KPI 3: USDT Neto Comprado -->
+      <div class="kpi-card kpi-usdt">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiUsdtTitle">NETO COMPRADO</span>
+          <span class="kpi-icon">💵 USDT</span>
+        </div>
+        <div class="kpi-value" id="kpiTotalUsdtNet">0.00 USDT</div>
+        <div class="kpi-footer">
+          <span>Brutos en órdenes: <strong id="kpiTotalUsdtGross">0.00 USDT</strong></span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Enviar al Cliente -->
+      <div class="kpi-card kpi-client-send">
+        <div class="kpi-header">
+          <span class="kpi-title">ENVIAR AL CLIENTE</span>
+          <span class="kpi-icon">📤 Cliente</span>
+        </div>
+        <div class="kpi-value" id="kpiTotalClientUsdt">0.00 USDT</div>
+        <div class="kpi-footer">
+          <span>Neto descontando <strong>0.425%</strong></span>
+        </div>
+      </div>
+
+      <!-- KPI 5: Comisión Binance y Mi Comisión (0.425%) en un solo recuadro -->
+      <div class="kpi-card kpi-my-profit">
+        <div class="kpi-dual-row">
+          <div class="kpi-dual-top">
+            <span class="kpi-dual-label">COMISIÓN BINANCE</span>
+            <strong class="kpi-dual-val text-danger" id="kpiTotalCommissionUsdt">0.00 USDT</strong>
+          </div>
+          <div class="kpi-dual-sub">
+            Equivalente: <strong id="kpiTotalCommissionVes">Bs. 0,00</strong>
+          </div>
+        </div>
+
+        <div class="kpi-dual-divider"></div>
+
+        <div class="kpi-dual-row">
+          <div class="kpi-dual-top">
+            <span class="kpi-dual-label">COMISIÓN X SERVICIO (0.425%)</span>
+            <strong class="kpi-dual-val text-profit" id="kpiTotalMyCommissionUsdt">0.00 USDT</strong>
+          </div>
+          <div class="kpi-dual-sub">
+            Equivalente: <strong id="kpiTotalMyCommissionVes" class="text-gold">Bs. 0,00</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tarjeta de Control del Ciclo de la Pestaña Seleccionada -->
+    <section class="card cycle-card">
+      <div class="card-header">
+        <div>
+          <h2 id="cycleCardTitle">⏱️ Control de Ciclo — Banesco</h2>
+          <p class="text-muted" id="cycleCardDesc">
+            Contabiliza todas tus compras de USDT pagadas por <strong>Banesco</strong> de forma independiente. Puedes tener Banesco y Banco de Venezuela activos al mismo tiempo.
+          </p>
+        </div>
+        <div class="cycle-header-right">
+          <span id="cycleStateBadge" class="badge badge-neutral">Inactivo</span>
+        </div>
+      </div>
+
+      <!-- Vista cuando NO hay ciclo activo en esta pestaña (ADMIN) -->
+      <div id="cycleInactiveView" class="cycle-body">
+        <div class="form-row align-end">
+          <div class="form-group flex-1">
+            <label for="cycleClientSelect">Seleccionar Cliente para este Ciclo</label>
+            <select id="cycleClientSelect">
+              <option value="">-- Selecciona un cliente registrado --</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-secondary" id="btnQuickOpenClients">
+            ➕ Nuevo Cliente
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-start-cycle" id="btnStartCycle">
+          ▶ INICIAR CICLO BANESCO
+        </button>
+      </div>
+
+      <!-- Vista cuando NO hay ciclo activo en esta pestaña (CLIENTE) -->
+      <div id="clientNoCycleView" class="cycle-body hidden">
+        <div class="empty-row" style="padding: 18px !important; border: 1px dashed var(--border-color); border-radius: 8px;">
+          No tienes un ciclo de compra activo en este banco en este momento. Cuando el administrador inicie un ciclo a tu nombre, aparecerá aquí en vivo automáticamente.
+        </div>
+      </div>
+
+      <!-- Vista cuando SÍ hay un ciclo activo en esta pestaña -->
+      <div id="cycleActiveView" class="cycle-body hidden">
+        <div class="active-cycle-banner">
+          <div class="pulse-indicator"></div>
+          <div class="active-cycle-info">
+            <div class="cycle-title-row">
+              <strong id="activeCycleName">Ciclo Actual</strong>
+            </div>
+            <div class="cycle-meta">
+              <span>Cliente: <strong id="activeCycleClientName" class="text-gold">--</strong></span>
+              <span>•</span>
+              <span>Contando desde: <strong id="activeCycleStartText">--</strong></span>
+              <span>•</span>
+              <span>Tiempo transcurrido: <strong id="activeCycleElapsed" class="mono-timer">00:00:00</strong></span>
+            </div>
+          </div>
+
+          <div class="cycle-active-actions admin-only" id="adminCycleActions">
+            <button type="button" class="btn btn-success" id="btnStopCycle">
+              ⏹ Finalizar y Guardar Ciclo
+            </button>
+            <button type="button" class="btn btn-danger-outline" id="btnCancelCycle" title="Descartar ciclo sin guardar">
+              🗑️ Descartar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla de Órdenes Compradas de la Pestaña Actual -->
+    <section class="card table-card">
+      <div class="card-header table-header-bar">
+        <div>
+          <h2 id="ordersTableTitle">📋 Detalle de Compras USDT — Banesco</h2>
+          <p class="text-muted" id="detectedMethodsInfo">Mostrando órdenes de compra (BUY) correspondientes a este ciclo.</p>
+        </div>
+        <div class="table-actions">
+          <input type="search" id="searchOrderInput" placeholder="Buscar por N° orden o contraparte..." class="search-input" />
+          <button type="button" class="btn btn-outline" id="btnExportCsv">
+            📊 Descargar Excel Detallado
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>N° Orden</th>
+              <th>Contraparte</th>
+              <th>Método</th>
+              <th>Estado</th>
+              <th class="text-right">Tasa</th>
+              <th class="text-right">VES Pagados</th>
+              <th class="text-right">USDT Comprados</th>
+              <th class="text-right">Comisión Binance</th>
+              <th class="text-right">USDT Netos</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr>
+              <td colspan="10" class="empty-row">
+                Inicia el ciclo de este banco para contabilizar tus compras de Binance P2P.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Historial de Ciclos Guardados -->
+    <section class="card history-card">
+      <div class="card-header">
+        <div>
+          <h2>🗂️ Historial de Ciclos Guardados</h2>
+          <p class="text-muted">Registro histórico de los ciclos finalizados (Banesco y Banco de Venezuela) con sus totales de VES pagados, USDT comprados y comisiones.</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table history-table">
+          <thead>
+            <tr>
+              <th>Ciclo</th>
+              <th>Cliente</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Método</th>
+              <th class="text-center">Órd.</th>
+              <th class="text-right">VES Pagados</th>
+              <th class="text-right">USDT Bruto</th>
+              <th class="text-right">Com. Binance</th>
+              <th class="text-right">USDT Netos</th>
+              <th class="text-right">Com. Servicio</th>
+              <th class="text-right">Tasa</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="13" class="empty-row">No hay ciclos guardados todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

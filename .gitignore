@@ -1,0 +1,15 @@
+# Datos sensibles y base de datos local con API Keys de Binance
+data.json
+*.backup.json
+
+# Variables de entorno locales
+.env
+.env.*
+!.env.example
+
+# Dependencias y archivos del sistema
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
