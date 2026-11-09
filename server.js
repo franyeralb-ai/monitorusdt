@@ -8,8 +8,35 @@ const PORT = Number(process.env.PORT) || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '09009001009';
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash('sha256').update(`p2p_secret_${ADMIN_PASSWORD}_monitor_usdt_v1`).digest('hex');
 const DATA_FILE = process.env.DATA_FILE ? path.resolve(process.env.DATA_FILE) : path.join(__dirname, 'data.json');
+const SEED_ENC_FILE = path.join(__dirname, 'seed.enc');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const BINANCE_BASE_URL = process.env.BINANCE_BASE_URL || 'https://api.binance.com';
+
+// Cifrado AES-256-GCM para respaldar configuración/clientes en seed.enc sin exponer texto plano en GitHub
+function getEncryptionKey() {
+  return crypto.scryptSync(ADMIN_PASSWORD, 'monitor_usdt_salt_v1', 32);
+}
+
+function encryptSeedData(dataObj) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  const jsonStr = JSON.stringify(dataObj);
+  const encrypted = Buffer.concat([cipher.update(jsonStr, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${iv.toString('base64')}.${tag.toString('base64')}.${encrypted.toString('base64')}`;
+}
+
+function decryptSeedData(payloadStr) {
+  const parts = String(payloadStr || '').trim().split('.');
+  if (parts.length !== 3) return null;
+  const iv = Buffer.from(parts[0], 'base64');
+  const tag = Buffer.from(parts[1], 'base64');
+  const encrypted = Buffer.from(parts[2], 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  decipher.setAuthTag(tag);
+  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  return JSON.parse(decrypted);
+}
 
 // Crear token firmado con rol (ADMIN o CLIENT)
 function createAuthToken(sessionPayload) {
@@ -91,8 +118,21 @@ function loadData() {
   }
 
   if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
-    return defaultData;
+    if (fs.existsSync(SEED_ENC_FILE)) {
+      try {
+        const encRaw = fs.readFileSync(SEED_ENC_FILE, 'utf8');
+        const restored = decryptSeedData(encRaw);
+        if (restored && typeof restored === 'object') {
+          fs.writeFileSync(DATA_FILE, JSON.stringify(restored, null, 2), 'utf8');
+        }
+      } catch (e) {
+        console.warn('No se pudo restaurar seed.enc:', e.message);
+      }
+    }
+    if (!fs.existsSync(DATA_FILE)) {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
+      return defaultData;
+    }
   }
 
   try {
@@ -182,6 +222,11 @@ function findPasswordConflict(data, candidatePassword, excludeId = null) {
 
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(SEED_ENC_FILE, encryptSeedData(data), 'utf8');
+  } catch (e) {
+    console.warn('No se pudo actualizar seed.enc:', e.message);
+  }
 }
 
 // Firma HMAC-SHA256 según documentación oficial Binance C2C SAPI
@@ -627,6 +672,16 @@ const server = http.createServer(async (req, res) => {
     // Health check para Render y servicios en la nube
     if (req.method === 'GET' && pathname === '/healthz') {
       return sendJson(res, 200, { ok: true, status: 'healthy', service: 'monitor-usdt' });
+    }
+
+    // Exportar estado cifrado actual (protegido por clave maestra) para sincronizar antes de git push
+    if (req.method === 'GET' && pathname === '/api/admin/seed') {
+      const keyHeader = String(req.headers['x-admin-key'] || '').trim();
+      if (keyHeader !== ADMIN_PASSWORD) {
+        return sendJson(res, 403, { ok: false, error: 'No autorizado' });
+      }
+      const data = loadData();
+      return sendJson(res, 200, { ok: true, seedEnc: encryptSeedData(data) });
     }
 
     // Login obligatorio de acceso al panel (Admin Supremo: 09009001009 | Comerciantes | Clientes)
