@@ -70,6 +70,36 @@ function formatElapsed(startMs) {
   return `${hrs}:${mins}:${secs}`;
 }
 
+function parseFlexibleVesAmount(rawStr) {
+  if (!rawStr) return 0;
+  let cleaned = String(rawStr).replace(/[^\d.,]/g, '').trim();
+  if (!cleaned) return 0;
+
+  const hasDot = cleaned.includes('.');
+  const hasComma = cleaned.includes(',');
+
+  if (hasDot && hasComma) {
+    if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (hasDot) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/\./g, '');
+    }
+  } else if (hasComma) {
+    if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+      cleaned = cleaned.replace(/,/g, '');
+    } else {
+      cleaned = cleaned.replace(',', '.');
+    }
+  }
+
+  const num = Number(cleaned);
+  return Number.isFinite(num) && num > 0 ? num : 0;
+}
+
 function showAlert(message, type = 'info', autoHideMs = 6000) {
   const box = document.getElementById('alertBox');
   box.className = `alert alert-${type}`;
@@ -410,7 +440,9 @@ function setupEventListeners() {
     }
 
     const payMethod = state.selectedBank;
-    const payload = { clientId, payMethod, offsetMinutes: 0 };
+    const targetVesInput = document.getElementById('cycleTargetVesInput');
+    const targetVes = targetVesInput ? parseFlexibleVesAmount(targetVesInput.value) : 0;
+    const payload = { clientId, payMethod, offsetMinutes: 0, targetVes: targetVes > 0 ? targetVes : null };
 
     const btn = document.getElementById('btnStartCycle');
     btn.disabled = true;
@@ -420,6 +452,7 @@ function setupEventListeners() {
         method: 'POST',
         body: JSON.stringify(payload)
       });
+      if (targetVesInput) targetVesInput.value = '';
       state.activeCycles = res.activeCycles || state.activeCycles;
       state.viewingHistoryCycle = null;
       renderAll();
@@ -892,6 +925,27 @@ function renderCycleControlCard() {
     if (clientNameEl) {
       clientNameEl.textContent = activeCycle.clientName || 'General';
     }
+
+    const targetWrapEl = document.getElementById('activeCycleTargetWrap');
+    const targetTextEl = document.getElementById('activeCycleTargetText');
+    const targetProgEl = document.getElementById('activeCycleTargetProgress');
+    if (targetWrapEl && targetTextEl && targetProgEl) {
+      const targetVes = Number(activeCycle.targetVes || 0);
+      if (targetVes > 0) {
+        const bankData = state.cyclesData[bank] || {};
+        const currentVes = Number((bankData.summary && bankData.summary.totalVes) || 0);
+        const pct = Math.min(100, (currentVes / targetVes) * 100);
+        const remVes = Math.max(0, targetVes - currentVes);
+        targetWrapEl.classList.remove('hidden');
+        targetTextEl.textContent = formatVes(targetVes);
+        targetProgEl.textContent = remVes <= 0.01
+          ? `✅ 100% Completado`
+          : `${pct.toFixed(1)}% • Faltan ${formatVes(remVes)}`;
+      } else {
+        targetWrapEl.classList.add('hidden');
+      }
+    }
+
     document.getElementById('activeCycleStartText').textContent = formatDateTime(activeCycle.startTime);
     document.getElementById('activeCycleElapsed').textContent = formatElapsed(activeCycle.startTime);
   } else {
@@ -977,10 +1031,16 @@ function renderKpis() {
   document.getElementById('kpiTotalVes').textContent = formatVes(totalVes);
 
   const breakdownEl = document.getElementById('kpiOrdersBreakdown');
+  const activeCycle = state.activeCycles[state.selectedBank];
+  const cycleTargetVes = Number(s.targetVes || (activeCycle && activeCycle.targetVes) || 0);
+  const targetSuffix = cycleTargetVes > 0
+    ? ` • Meta: <strong>${formatVes(cycleTargetVes)}</strong>`
+    : '';
+
   if (s.paidPendingCount > 0) {
-    breakdownEl.innerHTML = `En <strong>${s.orderCount || 0}</strong> órdenes (<strong>${s.completedCount || 0}</strong> completadas, <strong class="text-gold">${s.paidPendingCount} en liberación</strong>)`;
+    breakdownEl.innerHTML = `En <strong>${s.orderCount || 0}</strong> órdenes (<strong>${s.completedCount || 0}</strong> completadas, <strong class="text-gold">${s.paidPendingCount} en liberación</strong>)${targetSuffix}`;
   } else {
-    breakdownEl.innerHTML = `En <strong>${s.orderCount || 0}</strong> órdenes completadas (${escapeHtml(bankLabel)})`;
+    breakdownEl.innerHTML = `En <strong>${s.orderCount || 0}</strong> órdenes completadas (${escapeHtml(bankLabel)})${targetSuffix}`;
   }
 
   document.getElementById('kpiTotalUsdtNet').textContent = formatUsdt(totalUsdtNet);
@@ -1053,7 +1113,10 @@ function renderOrdersTable() {
           <td><span class="badge badge-banesco">${escapeHtml(o.payMethodName)}</span></td>
           <td>${statusBadge}</td>
           <td class="text-right">${fmtVes.format(o.unitPrice)}</td>
-          <td class="text-right text-gold"><strong>${formatVes(o.totalVes)}</strong></td>
+          <td class="text-right text-gold">
+            <strong>${formatVes(o.totalVes)}</strong>
+            ${o.isCappedToTarget ? `<br/><small class="text-muted" title="Ajustado al monto exacto del cliente">(De ${formatVes(o.originalTotalVes)})</small>` : ''}
+          </td>
           <td class="text-right">${fmtUsdt.format(o.amountUsdt)} USDT</td>
           <td class="text-right text-danger">
             ${fmtCommUsdt.format(o.commissionUsdt)} USDT

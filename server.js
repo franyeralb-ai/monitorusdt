@@ -434,7 +434,7 @@ function matchesPayMethod(orderPayMethod, filterValue) {
   });
 }
 
-// Filtrar y calcular totales del conjunto de órdenes
+// Filtrar y calcular totales del conjunto de órdenes (con soporte de tope exacto en Bs. targetVes por cliente)
 function buildOrderSummary(orders, {
   startTime,
   endTime,
@@ -442,11 +442,13 @@ function buildOrderSummary(orders, {
   assetFilter = 'USDT',
   fiatFilter = 'VES',
   includePaidPending = true,
-  preExistingCompletedIds = []
+  preExistingCompletedIds = [],
+  targetVes = null
 }) {
   const startMs = Number(startTime || 0);
   const endMs = Number(endTime || Date.now()) + 120000;
   const excludedSet = new Set(Array.isArray(preExistingCompletedIds) ? preExistingCompletedIds : []);
+  const numericTargetVes = Number(targetVes) > 0 ? Number(targetVes) : 0;
 
   const validInPeriod = orders.filter((o) => {
     if (o.tradeType !== 'BUY') return false;
@@ -472,9 +474,45 @@ function buildOrderSummary(orders, {
     detectedMethods[key] = (detectedMethods[key] || 0) + 1;
   }
 
-  const filteredOrders = validInPeriod
-    .filter((o) => matchesPayMethod(o.payMethodName, payMethodFilter))
-    .sort((a, b) => b.createTime - a.createTime);
+  let matchedByBank = validInPeriod.filter((o) => matchesPayMethod(o.payMethodName, payMethodFilter));
+
+  // Si el ciclo tiene una meta específica de Bs. (targetVes) enviada por el cliente,
+  // contabilizar cronológicamente hasta cubrir exactamente los Bs. del cliente.
+  if (numericTargetVes > 0) {
+    const chronological = [...matchedByBank].sort((a, b) => a.createTime - b.createTime);
+    const cappedList = [];
+    let remainingVes = numericTargetVes;
+
+    for (const o of chronological) {
+      if (remainingVes <= 0.005) break;
+
+      if (o.totalVes <= remainingVes + 0.005) {
+        cappedList.push(o);
+        remainingVes = Math.max(0, remainingVes - o.totalVes);
+      } else {
+        const ratio = remainingVes / o.totalVes;
+        const cappedNetUsdt = o.netUsdt * ratio;
+        const cappedMyCommUsdt = cappedNetUsdt * 0.00425;
+        cappedList.push({
+          ...o,
+          totalVes: remainingVes,
+          amountUsdt: o.amountUsdt * ratio,
+          commissionUsdt: o.commissionUsdt * ratio,
+          commissionVes: o.commissionVes * ratio,
+          netUsdt: cappedNetUsdt,
+          myCommissionUsdt: cappedMyCommUsdt,
+          myCommissionVes: cappedMyCommUsdt * o.unitPrice,
+          clientUsdt: Math.max(0, cappedNetUsdt - cappedMyCommUsdt),
+          originalTotalVes: o.totalVes,
+          isCappedToTarget: true
+        });
+        remainingVes = 0;
+      }
+    }
+    matchedByBank = cappedList;
+  }
+
+  const filteredOrders = matchedByBank.sort((a, b) => b.createTime - a.createTime);
 
   let totalVes = 0;
   let totalUsdtGross = 0;
@@ -521,6 +559,8 @@ function buildOrderSummary(orders, {
       avgRateGross,
       avgRateNet,
       avgRateClient,
+      targetVes: numericTargetVes > 0 ? numericTargetVes : null,
+      remainingVes: numericTargetVes > 0 ? Math.max(0, numericTargetVes - totalVes) : null,
       payMethodFilter: payMethodFilter || 'Todos',
       startTime: startMs,
       endTime: Number(endTime || Date.now())
@@ -1042,6 +1082,7 @@ const server = http.createServer(async (req, res) => {
 
       const payMethod = (body.payMethod || 'Banesco').trim();
       const clientId = String(body.clientId || '').trim();
+      const targetVes = Math.max(0, Number(body.targetVes) || 0);
       const foundClient = (ws.clients || []).find((c) => c.id === clientId);
       const clientName = foundClient ? foundClient.name : 'General';
 
@@ -1073,6 +1114,7 @@ const server = http.createServer(async (req, res) => {
         name,
         clientId: foundClient ? foundClient.id : null,
         clientName,
+        targetVes: targetVes > 0 ? targetVes : null,
         startTime,
         payMethod,
         preExistingCompletedIds,
@@ -1244,7 +1286,8 @@ const server = http.createServer(async (req, res) => {
           assetFilter: 'USDT',
           fiatFilter: 'VES',
           includePaidPending,
-          preExistingCompletedIds: cycle.preExistingCompletedIds || []
+          preExistingCompletedIds: cycle.preExistingCompletedIds || [],
+          targetVes: cycle.targetVes || null
         });
       }
 

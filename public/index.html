@@ -446,6 +446,10 @@
               <option value="">-- Selecciona un cliente registrado --</option>
             </select>
           </div>
+          <div class="form-group flex-1">
+            <label for="cycleTargetVesInput">Monto de Bs. a Comprar para este Cliente</label>
+            <input type="text" inputmode="decimal" id="cycleTargetVesInput" placeholder="Ej: 250000 (Dejar vacío para sin límite)" autocomplete="off" />
+          </div>
           <button type="button" class="btn btn-secondary" id="btnQuickOpenClients">
             ➕ Nuevo Cliente
           </button>
@@ -473,6 +477,7 @@
             </div>
             <div class="cycle-meta">
               <span>Cliente: <strong id="activeCycleClientName" class="text-gold">--</strong></span>
+              <span id="activeCycleTargetWrap" class="hidden">• Meta Bs. Cliente: <strong id="activeCycleTargetText" class="text-gold">Bs. 0,00</strong> (<strong id="activeCycleTargetProgress" class="text-success">0%</strong>)</span>
               <span>•</span>
               <span>Contando desde: <strong id="activeCycleStartText">--</strong></span>
               <span>•</span>
