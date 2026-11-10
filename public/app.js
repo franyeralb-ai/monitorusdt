@@ -1046,9 +1046,9 @@ function renderCycleControlCard() {
     if (histCycle && completedBanner) {
       completedBanner.classList.remove('hidden');
       const hs = histCycle.summary || {};
-      const totalNet = Number(hs.totalUsdtNet || 0);
-      const myComm = hs.totalMyCommissionUsdt !== undefined ? Number(hs.totalMyCommissionUsdt) : totalNet * 0.00425;
-      const clientUsdt = hs.totalClientUsdt !== undefined ? Number(hs.totalClientUsdt) : Math.max(0, totalNet - myComm);
+      const totalGross = Number(hs.totalUsdtGross || 0);
+      const clientFee = hs.totalClientFeeUsdt !== undefined ? Number(hs.totalClientFeeUsdt) : totalGross * 0.00425;
+      const clientUsdt = hs.totalClientUsdt !== undefined ? Number(hs.totalClientUsdt) : Math.max(0, totalGross - clientFee);
 
       const completedClientWrap = document.getElementById('completedCycleClientWrap');
       if (completedClientWrap) {
@@ -1120,6 +1120,7 @@ function renderKpis() {
   const { bankLabel, summary } = getDisplayedData();
   const s = summary || {};
   const upperBank = state.selectedBank.toUpperCase();
+  const isOperator = isOperatorRole();
 
   const totalVes = Number(s.totalVes || 0);
   const totalUsdtGross = Number(s.totalUsdtGross || 0);
@@ -1127,23 +1128,37 @@ function renderKpis() {
   const totalCommissionUsdt = Number(s.totalCommissionUsdt || 0);
   const totalCommissionVes = Number(s.totalCommissionVes || 0);
 
-  // Cálculo del 0.425% sobre los USDT Netos comprados
+  // El servicio asume la comisión de Binance:
+  // - Al cliente solo se le descuenta el 0.425% sobre los USDT Brutos comprados (totalUsdtGross).
+  // - La ganancia neta del servicio (totalMyCommissionUsdt) es ese 0.425% menos la comisión de Binance.
+  const avgRateGross = Number(s.avgRateGross || (totalUsdtGross > 0 ? totalVes / totalUsdtGross : 0));
+  const avgRateNet = Number(s.avgRateNet || (totalUsdtNet > 0 ? totalVes / totalUsdtNet : 0));
+
+  const totalClientFeeUsdt = s.totalClientFeeUsdt !== undefined
+    ? Number(s.totalClientFeeUsdt)
+    : totalUsdtGross * 0.00425;
+  const totalClientFeeVes = s.totalClientFeeVes !== undefined
+    ? Number(s.totalClientFeeVes)
+    : totalClientFeeUsdt * avgRateGross;
+
   const totalMyCommissionUsdt = s.totalMyCommissionUsdt !== undefined
     ? Number(s.totalMyCommissionUsdt)
-    : totalUsdtNet * 0.00425;
-  const avgRateNet = Number(s.avgRateNet || (totalUsdtNet > 0 ? totalVes / totalUsdtNet : 0));
+    : (totalClientFeeUsdt - totalCommissionUsdt);
   const totalMyCommissionVes = s.totalMyCommissionVes !== undefined
     ? Number(s.totalMyCommissionVes)
-    : totalMyCommissionUsdt * (s.avgRateGross || avgRateNet || 0);
+    : totalMyCommissionUsdt * avgRateGross;
+
   const totalClientUsdt = s.totalClientUsdt !== undefined
     ? Number(s.totalClientUsdt)
-    : Math.max(0, totalUsdtNet - totalMyCommissionUsdt);
+    : Math.max(0, totalUsdtGross - totalClientFeeUsdt);
   const avgRateClient = s.avgRateClient !== undefined
     ? Number(s.avgRateClient)
     : (totalClientUsdt > 0 ? totalVes / totalClientUsdt : 0);
 
   document.getElementById('kpiVesTitle').textContent = `TOTAL VES PAGADOS (${upperBank})`;
-  document.getElementById('kpiUsdtTitle').textContent = `NETO COMPRADO (${upperBank})`;
+  document.getElementById('kpiUsdtTitle').textContent = isOperator
+    ? `NETO COMPRADO (${upperBank})`
+    : `TOTAL COMPRADO (${upperBank})`;
 
   document.getElementById('kpiTotalVes').textContent = formatVes(totalVes);
 
@@ -1160,18 +1175,24 @@ function renderKpis() {
     breakdownEl.innerHTML = `En <strong>${s.orderCount || 0}</strong> órdenes completadas (${escapeHtml(bankLabel)})${targetSuffix}`;
   }
 
-  document.getElementById('kpiTotalUsdtNet').textContent = formatUsdt(totalUsdtNet);
+  document.getElementById('kpiTotalUsdtNet').textContent = formatUsdt(isOperator ? totalUsdtNet : totalUsdtGross);
   document.getElementById('kpiTotalUsdtGross').textContent = formatUsdt(totalUsdtGross);
   document.getElementById('kpiTotalClientUsdt').textContent = formatUsdt(totalClientUsdt);
 
-  document.getElementById('kpiTotalCommissionUsdt').textContent = `${fmtCommUsdt.format(totalCommissionUsdt)} USDT`;
-  document.getElementById('kpiTotalCommissionVes').textContent = formatVes(totalCommissionVes);
+  if (isOperator) {
+    document.getElementById('kpiTotalCommissionUsdt').textContent = `${fmtCommUsdt.format(totalCommissionUsdt)} USDT`;
+    document.getElementById('kpiTotalCommissionVes').textContent = formatVes(totalCommissionVes);
+    document.getElementById('kpiTotalMyCommissionUsdt').textContent = `${fmtCommUsdt.format(totalMyCommissionUsdt)} USDT`;
+    document.getElementById('kpiTotalMyCommissionVes').textContent = formatVes(totalMyCommissionVes);
+  } else {
+    document.getElementById('kpiTotalCommissionUsdt').textContent = `0.00 USDT`;
+    document.getElementById('kpiTotalCommissionVes').textContent = `Bs. 0,00 (Asumida)`;
+    document.getElementById('kpiTotalMyCommissionUsdt').textContent = `${fmtCommUsdt.format(totalClientFeeUsdt)} USDT`;
+    document.getElementById('kpiTotalMyCommissionVes').textContent = formatVes(totalClientFeeVes);
+  }
 
-  document.getElementById('kpiTotalMyCommissionUsdt').textContent = `${fmtCommUsdt.format(totalMyCommissionUsdt)} USDT`;
-  document.getElementById('kpiTotalMyCommissionVes').textContent = formatVes(totalMyCommissionVes);
-
-  document.getElementById('kpiAvgRateGross').textContent = `${formatVes(s.avgRateGross)} / USDT`;
-  document.getElementById('kpiAvgRateNet').textContent = formatVes(avgRateNet);
+  document.getElementById('kpiAvgRateGross').textContent = `${formatVes(avgRateGross)} / USDT`;
+  document.getElementById('kpiAvgRateNet').textContent = formatVes(isOperator ? avgRateNet : avgRateGross);
   document.getElementById('kpiAvgRateClient').textContent = formatVes(avgRateClient);
 }
 
@@ -1266,12 +1287,16 @@ function renderHistoryTable() {
   tbody.innerHTML = list
     .map((c) => {
       const s = c.summary || {};
-      const myCommUsdt = s.totalMyCommissionUsdt !== undefined
-        ? Number(s.totalMyCommissionUsdt)
-        : Number(s.totalUsdtNet || 0) * 0.00425;
-      const myCommVes = s.totalMyCommissionVes !== undefined
-        ? Number(s.totalMyCommissionVes)
-        : myCommUsdt * Number(s.avgRateGross || 0);
+      const grossUsdt = Number(s.totalUsdtGross || 0);
+      const binanceComm = Number(s.totalCommissionUsdt || 0);
+      const avgRate = Number(s.avgRateGross || 0);
+      const clientFeeUsdt = s.totalClientFeeUsdt !== undefined ? Number(s.totalClientFeeUsdt) : grossUsdt * 0.00425;
+      const myCommUsdt = isAdmin
+        ? (s.totalMyCommissionUsdt !== undefined ? Number(s.totalMyCommissionUsdt) : (clientFeeUsdt - binanceComm))
+        : clientFeeUsdt;
+      const myCommVes = isAdmin
+        ? (s.totalMyCommissionVes !== undefined ? Number(s.totalMyCommissionVes) : myCommUsdt * avgRate)
+        : (s.totalClientFeeVes !== undefined ? Number(s.totalClientFeeVes) : clientFeeUsdt * avgRate);
 
       const verBtn = anyActiveCycle
         ? `<button class="btn-chip btn-chip-disabled" disabled title="Hay un ciclo en curso. Finalízalo antes de ver ciclos anteriores en pantalla">🔒 En ciclo</button>`
@@ -1393,23 +1418,27 @@ function exportCurrentOrdersToCsv() {
 }
 
 function generateDetailedExcelReport({ cycleName, bankLabel, startTime, endTime, summary: s, orders }) {
+  const isOperator = isOperatorRole();
   const totalVes = Number(s.totalVes || 0);
   const totalUsdtGross = Number(s.totalUsdtGross || 0);
   const totalUsdtNet = Number(s.totalUsdtNet || 0);
   const totalCommissionUsdt = Number(s.totalCommissionUsdt || 0);
   const totalCommissionVes = Number(s.totalCommissionVes || 0);
 
-  const totalMyCommissionUsdt = s.totalMyCommissionUsdt !== undefined
-    ? Number(s.totalMyCommissionUsdt)
-    : totalUsdtNet * 0.00425;
   const avgRateGross = Number(s.avgRateGross || (totalUsdtGross > 0 ? totalVes / totalUsdtGross : 0));
   const avgRateNet = Number(s.avgRateNet || (totalUsdtNet > 0 ? totalVes / totalUsdtNet : 0));
-  const totalMyCommissionVes = s.totalMyCommissionVes !== undefined
-    ? Number(s.totalMyCommissionVes)
-    : totalMyCommissionUsdt * avgRateGross;
+  const totalClientFeeUsdt = s.totalClientFeeUsdt !== undefined
+    ? Number(s.totalClientFeeUsdt)
+    : totalUsdtGross * 0.00425;
+  const totalMyCommissionUsdt = isOperator
+    ? (s.totalMyCommissionUsdt !== undefined ? Number(s.totalMyCommissionUsdt) : (totalClientFeeUsdt - totalCommissionUsdt))
+    : totalClientFeeUsdt;
+  const totalMyCommissionVes = isOperator
+    ? (s.totalMyCommissionVes !== undefined ? Number(s.totalMyCommissionVes) : totalMyCommissionUsdt * avgRateGross)
+    : (s.totalClientFeeVes !== undefined ? Number(s.totalClientFeeVes) : totalClientFeeUsdt * avgRateGross);
   const totalClientUsdt = s.totalClientUsdt !== undefined
     ? Number(s.totalClientUsdt)
-    : Math.max(0, totalUsdtNet - totalMyCommissionUsdt);
+    : Math.max(0, totalUsdtGross - totalClientFeeUsdt);
   const avgRateClient = s.avgRateClient !== undefined
     ? Number(s.avgRateClient)
     : (totalClientUsdt > 0 ? totalVes / totalClientUsdt : 0);

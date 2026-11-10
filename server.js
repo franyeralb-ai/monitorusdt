@@ -151,6 +151,63 @@ function loadData() {
       activeCycles[methodKey] = parsed.activeCycle;
     }
 
+    // Recalcular ciclos guardados para que reflejen el esquema donde el servicio asume la comisión de Binance
+    const upgradeSavedCycles = (historyList) => {
+      if (!Array.isArray(historyList)) return [];
+      return historyList.map((cycle) => {
+        if (!cycle || !cycle.summary) return cycle;
+        const s = cycle.summary;
+        const totalVes = Number(s.totalVes || 0);
+        const totalUsdtGross = Number(s.totalUsdtGross || 0);
+        const totalUsdtNet = Number(s.totalUsdtNet || 0);
+        const totalCommissionUsdt = Number(s.totalCommissionUsdt || 0);
+        const totalCommissionVes = Number(s.totalCommissionVes || 0);
+        const avgRateGross = totalUsdtGross > 0 ? totalVes / totalUsdtGross : Number(s.avgRateGross || 0);
+        const avgRateNet = totalUsdtNet > 0 ? totalVes / totalUsdtNet : Number(s.avgRateNet || 0);
+
+        const totalClientFeeUsdt = totalUsdtGross * 0.00425;
+        const totalClientFeeVes = totalClientFeeUsdt * avgRateGross;
+        const totalClientUsdt = Math.max(0, totalUsdtGross - totalClientFeeUsdt);
+        const totalMyCommissionUsdt = totalClientFeeUsdt - totalCommissionUsdt;
+        const totalMyCommissionVes = totalMyCommissionUsdt * avgRateGross;
+        const avgRateClient = totalClientUsdt > 0 ? totalVes / totalClientUsdt : 0;
+
+        const updatedOrders = Array.isArray(cycle.orders)
+          ? cycle.orders.map((o) => {
+              const amt = Number(o.amountUsdt || 0);
+              const comm = Number(o.commissionUsdt || 0);
+              const uPrice = Number(o.unitPrice || avgRateGross || 0);
+              const cFeeUsdt = amt * 0.00425;
+              const myCommUsdt = cFeeUsdt - comm;
+              return {
+                ...o,
+                clientFeeUsdt: cFeeUsdt,
+                clientFeeVes: cFeeUsdt * uPrice,
+                myCommissionUsdt: myCommUsdt,
+                myCommissionVes: myCommUsdt * uPrice,
+                clientUsdt: Math.max(0, amt - cFeeUsdt)
+              };
+            })
+          : [];
+
+        return {
+          ...cycle,
+          summary: {
+            ...s,
+            totalClientFeeUsdt,
+            totalClientFeeVes,
+            totalMyCommissionUsdt,
+            totalMyCommissionVes,
+            totalClientUsdt,
+            avgRateGross,
+            avgRateNet,
+            avgRateClient
+          },
+          orders: updatedOrders
+        };
+      });
+    };
+
     const merchants = Array.isArray(parsed.merchants)
       ? parsed.merchants.map((m) => ({
           id: m.id,
@@ -164,7 +221,7 @@ function loadData() {
             'Banco de Venezuela': null,
             ...(m.activeCycles || {})
           },
-          cycleHistory: Array.isArray(m.cycleHistory) ? m.cycleHistory : []
+          cycleHistory: upgradeSavedCycles(m.cycleHistory)
         }))
       : [];
 
@@ -178,7 +235,7 @@ function loadData() {
       merchants,
       clients: Array.isArray(parsed.clients) ? parsed.clients : [],
       activeCycles,
-      cycleHistory: Array.isArray(parsed.cycleHistory) ? parsed.cycleHistory : [],
+      cycleHistory: upgradeSavedCycles(parsed.cycleHistory),
       deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [],
       orderPayMethodCache: parsed.orderPayMethodCache || {}
     };
@@ -446,11 +503,15 @@ function normalizeOrder(rawOrder, serviceFeePercent = 0.425) {
   const netUsdt = Math.max(0, amountUsdt - commissionUsdt);
   const commissionVes = commissionUsdt * unitPrice;
 
-  // Comisión del servicio al cliente (por defecto 0.425% sobre los USDT Netos comprados)
+  // El servicio asume la comisión de Binance:
+  // - Al cliente solo se le descuenta el 0.425% sobre los USDT Brutos comprados (amountUsdt).
+  // - La ganancia neta del servicio (myCommissionUsdt) es ese 0.425% menos la comisión retenida por Binance.
   const feeRate = Number(serviceFeePercent) / 100;
-  const myCommissionUsdt = netUsdt * feeRate;
+  const clientFeeUsdt = amountUsdt * feeRate;
+  const clientFeeVes = clientFeeUsdt * unitPrice;
+  const clientUsdt = Math.max(0, amountUsdt - clientFeeUsdt);
+  const myCommissionUsdt = clientFeeUsdt - commissionUsdt;
   const myCommissionVes = myCommissionUsdt * unitPrice;
-  const clientUsdt = Math.max(0, netUsdt - myCommissionUsdt);
 
   const statusRaw = String(rawOrder.orderStatus || '').toUpperCase();
   const isCompleted = statusRaw === 'COMPLETED' || statusRaw === '4';
@@ -473,6 +534,8 @@ function normalizeOrder(rawOrder, serviceFeePercent = 0.425) {
     fiatSymbol: String(rawOrder.fiatSymbol || 'Bs.'),
     amountUsdt,
     netUsdt,
+    clientFeeUsdt,
+    clientFeeVes,
     myCommissionUsdt,
     myCommissionVes,
     clientUsdt,
@@ -576,18 +639,24 @@ function buildOrderSummary(orders, {
         remainingVes = Math.max(0, remainingVes - o.totalVes);
       } else {
         const ratio = remainingVes / o.totalVes;
+        const cappedAmountUsdt = o.amountUsdt * ratio;
+        const cappedCommissionUsdt = o.commissionUsdt * ratio;
+        const cappedCommissionVes = o.commissionVes * ratio;
         const cappedNetUsdt = o.netUsdt * ratio;
-        const cappedMyCommUsdt = cappedNetUsdt * 0.00425;
+        const cappedClientFeeUsdt = cappedAmountUsdt * 0.00425;
+        const cappedMyCommUsdt = cappedClientFeeUsdt - cappedCommissionUsdt;
         cappedList.push({
           ...o,
           totalVes: remainingVes,
-          amountUsdt: o.amountUsdt * ratio,
-          commissionUsdt: o.commissionUsdt * ratio,
-          commissionVes: o.commissionVes * ratio,
+          amountUsdt: cappedAmountUsdt,
+          commissionUsdt: cappedCommissionUsdt,
+          commissionVes: cappedCommissionVes,
           netUsdt: cappedNetUsdt,
+          clientFeeUsdt: cappedClientFeeUsdt,
+          clientFeeVes: cappedClientFeeUsdt * o.unitPrice,
           myCommissionUsdt: cappedMyCommUsdt,
           myCommissionVes: cappedMyCommUsdt * o.unitPrice,
-          clientUsdt: Math.max(0, cappedNetUsdt - cappedMyCommUsdt),
+          clientUsdt: Math.max(0, cappedAmountUsdt - cappedClientFeeUsdt),
           originalTotalVes: o.totalVes,
           isCappedToTarget: true
         });
@@ -604,9 +673,6 @@ function buildOrderSummary(orders, {
   let totalUsdtNet = 0;
   let totalCommissionUsdt = 0;
   let totalCommissionVes = 0;
-  let totalMyCommissionUsdt = 0;
-  let totalMyCommissionVes = 0;
-  let totalClientUsdt = 0;
   let completedCount = 0;
   let paidPendingCount = 0;
 
@@ -616,15 +682,21 @@ function buildOrderSummary(orders, {
     totalUsdtNet += o.netUsdt;
     totalCommissionUsdt += o.commissionUsdt;
     totalCommissionVes += o.commissionVes;
-    totalMyCommissionUsdt += o.myCommissionUsdt || (o.netUsdt * 0.00425);
-    totalMyCommissionVes += o.myCommissionVes || (o.netUsdt * 0.00425 * o.unitPrice);
-    totalClientUsdt += o.clientUsdt || (o.netUsdt * (1 - 0.00425));
     if (o.isCompleted) completedCount++;
     else paidPendingCount++;
   }
 
   const avgRateGross = totalUsdtGross > 0 ? totalVes / totalUsdtGross : 0;
   const avgRateNet = totalUsdtNet > 0 ? totalVes / totalUsdtNet : 0;
+
+  // Esquema donde el servicio asume la comisión de Binance:
+  // - Al cliente solo se le descuenta el 0.425% sobre los USDT Brutos comprados (totalUsdtGross).
+  // - La ganancia neta real del servicio (totalMyCommissionUsdt) es ese 0.425% menos la comisión de Binance.
+  const totalClientFeeUsdt = totalUsdtGross * 0.00425;
+  const totalClientFeeVes = totalClientFeeUsdt * avgRateGross;
+  const totalClientUsdt = Math.max(0, totalUsdtGross - totalClientFeeUsdt);
+  const totalMyCommissionUsdt = totalClientFeeUsdt - totalCommissionUsdt;
+  const totalMyCommissionVes = totalMyCommissionUsdt * avgRateGross;
   const avgRateClient = totalClientUsdt > 0 ? totalVes / totalClientUsdt : 0;
 
   return {
@@ -638,6 +710,8 @@ function buildOrderSummary(orders, {
       totalUsdtNet,
       totalCommissionUsdt,
       totalCommissionVes,
+      totalClientFeeUsdt,
+      totalClientFeeVes,
       totalMyCommissionUsdt,
       totalMyCommissionVes,
       totalClientUsdt,
