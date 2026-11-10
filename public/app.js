@@ -943,7 +943,7 @@ function renderCycleControlCard() {
 
   document.getElementById('cycleCardTitle').textContent = isAdmin
     ? `⏱️ Control de Ciclo — ${bank}`
-    : `⏱️ MIS COMPRAS EN CURSO — ${bank} (${state.userName || 'Cliente'})`;
+    : `⏱️ MIS COMPRAS EN CURSO — ${bank}`;
   document.getElementById('cycleCardDesc').innerHTML = isAdmin
     ? `Contabiliza todas tus compras de USDT pagadas por <strong>${bank}</strong> de forma independiente. Puedes tener Banesco y Banco de Venezuela activos al mismo tiempo.`
     : `Aquí puedes ver en tiempo real las compras de USDT procesadas a tu nombre por <strong>${bank}</strong>.`;
@@ -966,7 +966,13 @@ function renderCycleControlCard() {
     stateBadge.className = 'badge badge-active badge-live-blink';
     stateBadge.textContent = '● En Curso';
 
-    document.getElementById('activeCycleName').textContent = activeCycle.name;
+    document.getElementById('activeCycleName').textContent = isAdmin
+      ? activeCycle.name
+      : `Compra en Curso (${formatDateTime(activeCycle.startTime)})`;
+    const clientWrapEl = document.getElementById('activeCycleClientWrap');
+    if (clientWrapEl) {
+      clientWrapEl.classList.toggle('hidden', !isAdmin);
+    }
     const clientNameEl = document.getElementById('activeCycleClientName');
     if (clientNameEl) {
       clientNameEl.textContent = activeCycle.clientName || 'General';
@@ -1005,6 +1011,10 @@ function renderCycleControlCard() {
       const myComm = hs.totalMyCommissionUsdt !== undefined ? Number(hs.totalMyCommissionUsdt) : totalNet * 0.00425;
       const clientUsdt = hs.totalClientUsdt !== undefined ? Number(hs.totalClientUsdt) : Math.max(0, totalNet - myComm);
 
+      const completedClientWrap = document.getElementById('completedCycleClientWrap');
+      if (completedClientWrap) {
+        completedClientWrap.classList.toggle('hidden', !isAdmin);
+      }
       document.getElementById('completedCycleClientName').textContent = histCycle.clientName || 'General';
       document.getElementById('completedCycleVes').textContent = formatVes(hs.totalVes || 0);
       document.getElementById('completedCycleClientUsdt').textContent = formatUsdt(clientUsdt);
@@ -1102,7 +1112,7 @@ function renderKpis() {
   const activeCycle = state.activeCycles[state.selectedBank];
   const cycleTargetVes = Number(s.targetVes || (activeCycle && activeCycle.targetVes) || 0);
   const targetSuffix = cycleTargetVes > 0
-    ? ` • Meta: <strong>${formatVes(cycleTargetVes)}</strong>`
+    ? ` • Cantidad total: <strong>${formatVes(cycleTargetVes)}</strong>`
     : '';
 
   if (s.paidPendingCount > 0) {
