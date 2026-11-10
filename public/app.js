@@ -569,6 +569,14 @@ async function loadInitialState() {
     // Si Banesco no está activo pero Banco de Venezuela sí, abrir la pestaña activa
     if (!state.activeCycles['Banesco'] && state.activeCycles['Banco de Venezuela']) {
       state.selectedBank = 'Banco de Venezuela';
+    } else if (
+      state.userRole === 'CLIENT' &&
+      !state.activeCycles['Banesco'] &&
+      !state.activeCycles['Banco de Venezuela'] &&
+      state.cycleHistory.length > 0
+    ) {
+      state.viewingHistoryCycle = state.cycleHistory[0];
+      state.selectedBank = state.cycleHistory[0].payMethod || 'Banesco';
     }
 
     updateApiBadge();
@@ -811,6 +819,7 @@ async function syncActiveCycles(silent = false) {
   state.isSyncing = true;
 
   try {
+    const prevActive = { ...state.activeCycles };
     const res = await apiFetch('/api/cycles/sync?includePaidPending=true');
     if (res.pingMs) {
       state.pingMs = res.pingMs;
@@ -826,6 +835,41 @@ async function syncActiveCycles(silent = false) {
 
     state.cyclesData['Banesco'] = cyclesData['Banesco'] || null;
     state.cyclesData['Banco de Venezuela'] = cyclesData['Banco de Venezuela'] || null;
+
+    // Detectar si un ciclo acaba de completarse automáticamente al llegar al 100% de los Bs. del cliente
+    const autoList = Array.isArray(res.autoCompletedCycles) ? res.autoCompletedCycles : [];
+    let newlyCompleted = autoList[0] || null;
+
+    if (!newlyCompleted) {
+      for (const bKey of ['Banesco', 'Banco de Venezuela']) {
+        if (prevActive[bKey] && !state.activeCycles[bKey]) {
+          const foundInHist = (state.cycleHistory || []).find((h) => h.id === prevActive[bKey].id);
+          if (foundInHist) {
+            newlyCompleted = foundInHist;
+            break;
+          }
+        }
+      }
+    }
+
+    if (newlyCompleted) {
+      state.selectedBank = newlyCompleted.payMethod || state.selectedBank;
+      state.viewingHistoryCycle = newlyCompleted;
+      const totalVesDone = newlyCompleted.summary ? newlyCompleted.summary.totalVes : newlyCompleted.targetVes;
+      showAlert(
+        `✅ CICLO DE COMPRA COMPLETADO — Se compraron los ${formatVes(totalVesDone)} de ${newlyCompleted.clientName || 'Cliente'}. El ciclo se finalizó y guardó automáticamente.`,
+        'success',
+        12000
+      );
+    } else if (
+      state.userRole === 'CLIENT' &&
+      !state.activeCycles['Banesco'] &&
+      !state.activeCycles['Banco de Venezuela'] &&
+      !state.viewingHistoryCycle &&
+      (state.cycleHistory || []).length > 0
+    ) {
+      state.viewingHistoryCycle = state.cycleHistory[0];
+    }
 
     renderAll();
   } catch (err) {
@@ -908,12 +952,14 @@ function renderCycleControlCard() {
   const inactiveView = document.getElementById('cycleInactiveView');
   const clientNoCycleView = document.getElementById('clientNoCycleView');
   const activeView = document.getElementById('cycleActiveView');
+  const completedBanner = document.getElementById('cycleCompletedBanner');
   const adminActions = document.getElementById('adminCycleActions');
   const stateBadge = document.getElementById('cycleStateBadge');
 
   if (activeCycle) {
     inactiveView.classList.add('hidden');
     if (clientNoCycleView) clientNoCycleView.classList.add('hidden');
+    if (completedBanner) completedBanner.classList.add('hidden');
     activeView.classList.remove('hidden');
     if (adminActions) adminActions.classList.toggle('hidden', !isAdmin);
 
@@ -950,15 +996,37 @@ function renderCycleControlCard() {
     document.getElementById('activeCycleElapsed').textContent = formatElapsed(activeCycle.startTime);
   } else {
     activeView.classList.add('hidden');
+    const histCycle = state.viewingHistoryCycle;
+
+    if (histCycle && completedBanner) {
+      completedBanner.classList.remove('hidden');
+      const hs = histCycle.summary || {};
+      const totalNet = Number(hs.totalUsdtNet || 0);
+      const myComm = hs.totalMyCommissionUsdt !== undefined ? Number(hs.totalMyCommissionUsdt) : totalNet * 0.00425;
+      const clientUsdt = hs.totalClientUsdt !== undefined ? Number(hs.totalClientUsdt) : Math.max(0, totalNet - myComm);
+
+      document.getElementById('completedCycleClientName').textContent = histCycle.clientName || 'General';
+      document.getElementById('completedCycleVes').textContent = formatVes(hs.totalVes || 0);
+      document.getElementById('completedCycleClientUsdt').textContent = formatUsdt(clientUsdt);
+      document.getElementById('completedCycleEndText').textContent = formatDateTime(histCycle.endTime);
+
+      stateBadge.className = 'badge badge-active';
+      stateBadge.textContent = '✅ CICLO DE COMPRA COMPLETADO';
+    } else {
+      if (completedBanner) completedBanner.classList.add('hidden');
+      stateBadge.className = 'badge badge-neutral';
+      stateBadge.textContent = 'Inactivo';
+    }
+
     if (isAdmin) {
       inactiveView.classList.remove('hidden');
       if (clientNoCycleView) clientNoCycleView.classList.add('hidden');
     } else {
       inactiveView.classList.add('hidden');
-      if (clientNoCycleView) clientNoCycleView.classList.remove('hidden');
+      if (clientNoCycleView) {
+        clientNoCycleView.classList.toggle('hidden', Boolean(histCycle));
+      }
     }
-    stateBadge.className = 'badge badge-neutral';
-    stateBadge.textContent = 'Inactivo';
   }
 }
 

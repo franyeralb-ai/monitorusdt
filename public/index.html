@@ -438,6 +438,27 @@
         </div>
       </div>
 
+      <!-- Banner visible cuando el ciclo de compra se completó y guardó (para Cliente y Comerciante) -->
+      <div id="cycleCompletedBanner" class="cycle-body hidden" style="margin-bottom: 14px;">
+        <div class="active-cycle-banner" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1.5px solid #10b981;">
+          <div style="font-size: 1.5rem; line-height: 1;">✅</div>
+          <div class="active-cycle-info">
+            <div class="cycle-title-row">
+              <strong style="color: #065f46; font-size: 1.02rem;" id="completedBannerTitle">CICLO DE COMPRA COMPLETADO</strong>
+            </div>
+            <div class="cycle-meta" style="color: #047857;">
+              <span>Cliente: <strong id="completedCycleClientName">--</strong></span>
+              <span>•</span>
+              <span>Total Comprado: <strong id="completedCycleVes">Bs. 0,00</strong> (100% Completado)</span>
+              <span>•</span>
+              <span>Enviar al Cliente: <strong id="completedCycleClientUsdt">0.00 USDT</strong></span>
+              <span>•</span>
+              <span>Finalizado: <strong id="completedCycleEndText">--</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Vista cuando NO hay ciclo activo en esta pestaña (ADMIN) -->
       <div id="cycleInactiveView" class="cycle-body">
         <div class="form-row align-end">
