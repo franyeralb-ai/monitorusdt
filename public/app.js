@@ -943,7 +943,7 @@ function renderCycleControlCard() {
 
   document.getElementById('cycleCardTitle').textContent = isAdmin
     ? `⏱️ Control de Ciclo — ${bank}`
-    : `⏱️ Ciclo en Vivo — ${bank} (${state.userName || 'Cliente'})`;
+    : `⏱️ MIS COMPRAS EN CURSO — ${bank} (${state.userName || 'Cliente'})`;
   document.getElementById('cycleCardDesc').innerHTML = isAdmin
     ? `Contabiliza todas tus compras de USDT pagadas por <strong>${bank}</strong> de forma independiente. Puedes tener Banesco y Banco de Venezuela activos al mismo tiempo.`
     : `Aquí puedes ver en tiempo real las compras de USDT procesadas a tu nombre por <strong>${bank}</strong>.`;
