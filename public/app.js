@@ -144,6 +144,16 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
+// Bloquear zoom con los dedos (pinch-to-zoom) y doble toque en teléfonos (iOS Safari y Android)
+document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', (e) => {
+  if (e.touches && e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
 function showLoginScreen() {
   document.getElementById('loginOverlay').classList.remove('hidden');
   document.getElementById('appWrapper').classList.add('hidden');
