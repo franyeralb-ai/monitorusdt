@@ -199,22 +199,22 @@ function getWorkspace(data, authSession) {
 
 // Verificar que una clave no esté repetida en ningún rol (Admin, Comerciantes ni Clientes)
 function findPasswordConflict(data, candidatePassword, excludeId = null) {
-  const pass = String(candidatePassword || '').trim();
-  if (pass === ADMIN_PASSWORD) {
+  const pass = String(candidatePassword || '').trim().toLowerCase();
+  if (pass === String(ADMIN_PASSWORD).trim().toLowerCase()) {
     return 'el Administrador Supremo';
   }
   for (const m of data.merchants || []) {
-    if (m.id !== excludeId && String(m.password) === pass) {
+    if (m.id !== excludeId && String(m.password || '').trim().toLowerCase() === pass) {
       return `el comerciante "${m.name}"`;
     }
     for (const c of m.clients || []) {
-      if (c.id !== excludeId && String(c.password) === pass) {
+      if (c.id !== excludeId && String(c.password || '').trim().toLowerCase() === pass) {
         return `el cliente "${c.name}" (de ${m.name})`;
       }
     }
   }
   for (const c of data.clients || []) {
-    if (c.id !== excludeId && String(c.password) === pass) {
+    if (c.id !== excludeId && String(c.password || '').trim().toLowerCase() === pass) {
       return `el cliente "${c.name}"`;
     }
   }
@@ -702,8 +702,12 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      // 2) Comerciante registrado por el Admin Supremo
-      const matchedMerchant = (data.merchants || []).find((m) => String(m.password) === inputPass);
+      const inputLower = inputPass.toLowerCase();
+
+      // 2) Comerciante registrado por el Admin Supremo (insensible a mayúsculas/minúsculas de teclado móvil)
+      const matchedMerchant = (data.merchants || []).find(
+        (m) => String(m.password || '').trim().toLowerCase() === inputLower
+      );
       if (matchedMerchant) {
         const sessionPayload = {
           role: 'MERCHANT',
@@ -720,7 +724,9 @@ const server = http.createServer(async (req, res) => {
       }
 
       // 3) Cliente directo del Admin Supremo
-      const matchedAdminClient = (data.clients || []).find((c) => String(c.password) === inputPass);
+      const matchedAdminClient = (data.clients || []).find(
+        (c) => String(c.password || '').trim().toLowerCase() === inputLower
+      );
       if (matchedAdminClient) {
         const sessionPayload = {
           role: 'CLIENT',
@@ -738,7 +744,9 @@ const server = http.createServer(async (req, res) => {
 
       // 4) Cliente perteneciente a alguno de los Comerciantes
       for (const m of data.merchants || []) {
-        const matchedSubClient = (m.clients || []).find((c) => String(c.password) === inputPass);
+        const matchedSubClient = (m.clients || []).find(
+          (c) => String(c.password || '').trim().toLowerCase() === inputLower
+        );
         if (matchedSubClient) {
           const sessionPayload = {
             role: 'CLIENT',
