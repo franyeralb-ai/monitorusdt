@@ -373,7 +373,10 @@ async function fetchC2CBuyOrders({ startTime, endTime, apiKey, secretKey }) {
   while (currentStart < finalEnd) {
     const currentEnd = Math.min(currentStart + MAX_WINDOW_MS, finalEnd);
     let page = 1;
-    const rows = 100;
+    // IMPORTANTE: La API C2C de Binance devuelve máximo 50 órdenes por página aunque se pida rows=100.
+    // Si rows=100, list.length (50) < rows (100) detenía la paginación en la página 1 (solo las últimas 50 órdenes).
+    const rows = 50;
+    const MAX_PAGES = 50; // Hasta 2.500 órdenes por ventana
     let keepPaging = true;
 
     while (keepPaging) {
@@ -392,13 +395,22 @@ async function fetchC2CBuyOrders({ startTime, endTime, apiKey, secretKey }) {
       });
 
       const list = Array.isArray(response.data) ? response.data : [];
+      let oldestCreateTimeOnPage = Infinity;
       for (const item of list) {
         if (item && item.orderNumber) {
           allRawOrders.set(String(item.orderNumber), item);
         }
+        const ct = Number(item && item.createTime ? item.createTime : 0);
+        if (ct > 0 && ct < oldestCreateTimeOnPage) {
+          oldestCreateTimeOnPage = ct;
+        }
       }
 
-      if (list.length < rows || page >= 10) {
+      const totalReported = Number(response && response.total ? response.total : 0);
+      const reachedTotal = totalReported > 0 && (page * rows) >= totalReported;
+      const reachedBeforeStart = oldestCreateTimeOnPage < currentStart;
+
+      if (list.length < rows || reachedTotal || reachedBeforeStart || page >= MAX_PAGES) {
         keepPaging = false;
       } else {
         page++;
