@@ -179,6 +179,7 @@ function loadData() {
       clients: Array.isArray(parsed.clients) ? parsed.clients : [],
       activeCycles,
       cycleHistory: Array.isArray(parsed.cycleHistory) ? parsed.cycleHistory : [],
+      deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [],
       orderPayMethodCache: parsed.orderPayMethodCache || {}
     };
   } catch (err) {
@@ -933,6 +934,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       targetMerchant.password = newPassword;
+      targetMerchant.updatedAt = Date.now();
       saveData(data);
 
       return sendJson(res, 200, {
@@ -955,6 +957,7 @@ const server = http.createServer(async (req, res) => {
       const merchantId = decodeURIComponent(pathname.replace('/api/merchants/', ''));
       const data = loadData();
       data.merchants = (data.merchants || []).filter((m) => m.id !== merchantId);
+      data.deletedIds = Array.from(new Set([...(data.deletedIds || []), merchantId]));
       saveData(data);
 
       return sendJson(res, 200, {
@@ -1042,6 +1045,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       targetClient.password = newPassword;
+      targetClient.updatedAt = Date.now();
       if (newName) {
         targetClient.name = newName;
       }
@@ -1060,6 +1064,7 @@ const server = http.createServer(async (req, res) => {
       const data = loadData();
       const ws = getWorkspace(data, authSession);
       ws.clients = (ws.clients || []).filter((c) => c.id !== clientId);
+      data.deletedIds = Array.from(new Set([...(data.deletedIds || []), clientId]));
       saveData(data);
       return sendJson(res, 200, {
         ok: true,
@@ -1081,6 +1086,10 @@ const server = http.createServer(async (req, res) => {
       }
       if (typeof body.defaultPayMethod === 'string' && body.defaultPayMethod.trim() !== '') {
         ws.config.defaultPayMethod = body.defaultPayMethod.trim();
+      }
+      ws.config.updatedAt = Date.now();
+      if (ws !== data) {
+        ws.updatedAt = Date.now();
       }
 
       saveData(data);
@@ -1250,6 +1259,7 @@ const server = http.createServer(async (req, res) => {
       const data = loadData();
       const ws = getWorkspace(data, authSession);
       ws.cycleHistory = ws.cycleHistory.filter((c) => c.id !== cycleId);
+      data.deletedIds = Array.from(new Set([...(data.deletedIds || []), cycleId]));
       saveData(data);
       return sendJson(res, 200, {
         ok: true,
