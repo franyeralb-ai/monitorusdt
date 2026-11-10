@@ -614,6 +614,19 @@ body {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
 }
 
+.status-funding {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+  border: 1.5px solid #93c5fd;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.status-funding strong {
+  color: #0f172a;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+}
+
 /* =========================================================
    CONTENEDOR PRINCIPAL CON MÁRGENES ELEGANTES
    ========================================================= */

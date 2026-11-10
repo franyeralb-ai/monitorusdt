@@ -293,6 +293,33 @@ async function binanceSignedRequest({ method = 'GET', endpoint, queryParams = {}
   return json;
 }
 
+// Consultar saldo disponible de USDT en la Billetera de Fondos (Funding Wallet) de Binance
+async function fetchFundingUsdtBalance(apiKey, secretKey) {
+  if (!apiKey || !secretKey) return null;
+  try {
+    const res = await binanceSignedRequest({
+      method: 'POST',
+      endpoint: '/sapi/v1/asset/get-funding-asset',
+      queryParams: { asset: 'USDT' },
+      apiKey,
+      secretKey
+    });
+    if (Array.isArray(res)) {
+      const usdtItem = res.find((item) => String(item.asset || '').toUpperCase() === 'USDT');
+      if (usdtItem) {
+        return {
+          availableUsdt: Number(usdtItem.free || 0),
+          frozenUsdt: Number(usdtItem.freeze || 0) + Number(usdtItem.locked || 0)
+        };
+      }
+      return { availableUsdt: 0, frozenUsdt: 0 };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // Obtener detalle de una orden en caso de que payMethodName no venga en el listado
 async function fetchOrderPayMethodDetail(orderNumber, apiKey, secretKey, cache) {
   if (cache[orderNumber]) {
@@ -779,10 +806,16 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 0. Endpoint rápido de Ping a Binance
+    // 0. Endpoint rápido de Ping a Binance + Saldo en Fondos para Operadores (ADMIN / MERCHANT)
     if (req.method === 'GET' && pathname === '/api/ping') {
       const pingMs = await measureBinancePing();
-      return sendJson(res, 200, { ok: true, pingMs, role: authSession.role, userName: authSession.userName });
+      let fundingBalance = null;
+      if (authSession.role === 'ADMIN' || authSession.role === 'MERCHANT') {
+        const data = loadData();
+        const ws = getWorkspace(data, authSession);
+        fundingBalance = await fetchFundingUsdtBalance(ws.config.apiKey, ws.config.secretKey);
+      }
+      return sendJson(res, 200, { ok: true, pingMs, fundingBalance, role: authSession.role, userName: authSession.userName });
     }
 
     // 1. Obtener estado general (diferenciado entre ADMIN, MERCHANT y CLIENTE)
@@ -793,6 +826,7 @@ const server = http.createServer(async (req, res) => {
       const ws = getWorkspace(data, authSession);
 
       if (authSession.role === 'ADMIN' || authSession.role === 'MERCHANT') {
+        const fundingBalance = await fetchFundingUsdtBalance(ws.config.apiKey, ws.config.secretKey);
         const merchantsSummary = authSession.role === 'ADMIN'
           ? (data.merchants || []).map((m) => ({
               id: m.id,
@@ -812,6 +846,7 @@ const server = http.createServer(async (req, res) => {
           clientId: null,
           merchantId: authSession.merchantId || null,
           pingMs,
+          fundingBalance,
           config: {
             hasCredentials: Boolean(ws.config.apiKey && ws.config.secretKey),
             apiKeyMasked: maskKey(ws.config.apiKey),
@@ -1093,9 +1128,11 @@ const server = http.createServer(async (req, res) => {
       }
 
       saveData(data);
+      const fundingBalance = await fetchFundingUsdtBalance(ws.config.apiKey, ws.config.secretKey);
       return sendJson(res, 200, {
         ok: true,
         message: 'Configuración de API de Binance guardada correctamente.',
+        fundingBalance,
         config: {
           hasCredentials: Boolean(ws.config.apiKey && ws.config.secretKey),
           apiKeyMasked: maskKey(ws.config.apiKey),
@@ -1281,6 +1318,7 @@ const server = http.createServer(async (req, res) => {
       });
 
       const isOperator = authSession.role === 'ADMIN' || authSession.role === 'MERCHANT';
+      const fundingBalance = isOperator ? await fetchFundingUsdtBalance(apiKey, secretKey) : null;
       const activeCyclesPayload = isOperator
         ? ws.activeCycles
         : {
@@ -1295,6 +1333,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, {
           ok: true,
           pingMs: lastBinancePingMs,
+          fundingBalance,
           activeCycles: activeCyclesPayload,
           cycleHistory: cycleHistoryPayload,
           cyclesData: {}
@@ -1394,6 +1433,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         ok: true,
         pingMs: lastBinancePingMs,
+        fundingBalance,
         activeCycles: finalActiveCyclesPayload,
         cycleHistory: finalCycleHistoryPayload,
         autoCompletedCycles,

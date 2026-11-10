@@ -7,6 +7,7 @@ const state = {
   merchantId: null,
   hasCredentials: false,
   pingMs: 0,
+  fundingBalance: null,
   selectedBank: 'Banesco', // 'Banesco' | 'Banco de Venezuela'
   merchants: [],
   clients: [],
@@ -374,8 +375,10 @@ function setupEventListeners() {
         body: JSON.stringify({ apiKey, secretKey })
       });
       state.hasCredentials = res.config.hasCredentials;
+      if (res.fundingBalance !== undefined) {
+        state.fundingBalance = res.fundingBalance;
+      }
       document.getElementById('inputApiKey').value = res.config.apiKey || '';
-    document.getElementById('inputSecretKey').value = res.config.secretKey || '';
       document.getElementById('inputSecretKey').value = res.config.secretKey || '';
       updateApiBadge();
       showAlert('✅ Credenciales de API de Binance guardadas correctamente.', 'success');
@@ -555,6 +558,7 @@ async function loadInitialState() {
 
     state.hasCredentials = res.config.hasCredentials;
     if (res.pingMs) state.pingMs = res.pingMs;
+    if (res.fundingBalance !== undefined) state.fundingBalance = res.fundingBalance;
     state.merchants = res.merchants || [];
     state.clients = res.clients || [];
     state.activeCycles = res.activeCycles || { 'Banesco': null, 'Banco de Venezuela': null };
@@ -776,6 +780,21 @@ function updateApiBadge() {
     badge.className = 'status-badge status-warn';
     text.textContent = state.pingMs ? `Binance Ping: ${state.pingMs} ms (Sin API)` : 'API No Configurada';
   }
+
+  const fundingBadge = document.getElementById('fundingBalanceBadge');
+  const fundingText = document.getElementById('fundingBalanceText');
+  if (fundingBadge && fundingText) {
+    if (!isOperatorRole()) {
+      fundingBadge.classList.add('hidden');
+    } else {
+      fundingBadge.classList.remove('hidden');
+      if (state.hasCredentials && state.fundingBalance && state.fundingBalance.availableUsdt !== undefined) {
+        fundingText.textContent = formatUsdt(state.fundingBalance.availableUsdt);
+      } else {
+        fundingText.textContent = '-- USDT';
+      }
+    }
+  }
 }
 
 // Temporizador de 1s (cronómetros) y 4s (actualización continua en vivo de ciclos activos y Ping)
@@ -804,8 +823,11 @@ function startGlobalTimers() {
         const pRes = await apiFetch('/api/ping');
         if (pRes.pingMs) {
           state.pingMs = pRes.pingMs;
-          updateApiBadge();
         }
+        if (pRes.fundingBalance !== undefined) {
+          state.fundingBalance = pRes.fundingBalance;
+        }
+        updateApiBadge();
       } catch (e) {}
     }
   }, 4000);
@@ -827,8 +849,11 @@ async function syncActiveCycles(silent = false) {
     const res = await apiFetch('/api/cycles/sync?includePaidPending=true');
     if (res.pingMs) {
       state.pingMs = res.pingMs;
-      updateApiBadge();
     }
+    if (res.fundingBalance !== undefined) {
+      state.fundingBalance = res.fundingBalance;
+    }
+    updateApiBadge();
     if (res.activeCycles) {
       state.activeCycles = res.activeCycles;
     }
