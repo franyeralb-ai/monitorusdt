@@ -501,11 +501,15 @@ function setupEventListeners() {
     }
   });
 
-  // Descartar ciclo activo de la pestaña actual
+  // Descartar ciclo activo de la pestaña actual (con doble confirmación de seguridad)
   document.getElementById('btnCancelCycle').addEventListener('click', async () => {
     const bank = state.selectedBank;
-    if (!state.activeCycles[bank]) return;
-    if (!confirm(`¿Estás seguro de descartar el ciclo activo de ${bank} sin guardarlo en el historial?`)) return;
+    const currentCycle = state.activeCycles[bank];
+    if (!currentCycle) return;
+    const clientLabel = currentCycle.clientName || 'General';
+
+    if (!confirm(`⚠️ ¿Estás seguro de descartar el ciclo activo de ${bank} (${clientLabel}) sin guardarlo en el historial?`)) return;
+    if (!confirm(`🚨 SEGUNDA CONFIRMACIÓN: Se descartará definitivamente el ciclo en curso de ${bank} para "${clientLabel}" y NO quedará guardado. ¿Confirmas descartarlo?`)) return;
 
     try {
       const res = await apiFetch('/api/cycle/cancel', {
