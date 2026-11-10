@@ -256,6 +256,87 @@ function setupEventListeners() {
     }
   });
 
+  // Alternar entre Iniciar Sesión y Registro Autónomo de Comerciante
+  const btnShowRegister = document.getElementById('btnShowMerchantRegister');
+  const btnBackLogin = document.getElementById('btnBackToLogin');
+  const loginViewBox = document.getElementById('loginViewBox');
+  const registerMerchantBox = document.getElementById('registerMerchantBox');
+
+  if (btnShowRegister && loginViewBox && registerMerchantBox) {
+    btnShowRegister.addEventListener('click', () => {
+      loginViewBox.classList.add('hidden');
+      registerMerchantBox.classList.remove('hidden');
+      const errBox = document.getElementById('registerErrorMsg');
+      if (errBox) errBox.classList.add('hidden');
+      const firstInput = document.getElementById('regFullNameInput');
+      if (firstInput) firstInput.focus();
+    });
+  }
+
+  if (btnBackLogin && loginViewBox && registerMerchantBox) {
+    btnBackLogin.addEventListener('click', () => {
+      registerMerchantBox.classList.add('hidden');
+      loginViewBox.classList.remove('hidden');
+      const errBox = document.getElementById('loginErrorMsg');
+      if (errBox) errBox.classList.add('hidden');
+      const passInput = document.getElementById('loginPasswordInput');
+      if (passInput) passInput.focus();
+    });
+  }
+
+  // Formulario de Registro Autónomo Exclusivo para Comerciantes
+  const registerMerchantForm = document.getElementById('registerMerchantForm');
+  if (registerMerchantForm) {
+    registerMerchantForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fullName = document.getElementById('regFullNameInput').value.trim();
+      const name = document.getElementById('regMerchantNameInput').value.trim();
+      const email = document.getElementById('regEmailInput').value.trim();
+      const password = document.getElementById('regPasswordInput').value.trim();
+      const errBox = document.getElementById('registerErrorMsg');
+      const btn = document.getElementById('btnRegisterMerchantSubmit');
+
+      errBox.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = '⏳ Creando cuenta de Comerciante...';
+
+      try {
+        const res = await fetch('/api/auth/register-merchant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName, name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          errBox.textContent = data.error || 'No se pudo completar el registro.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // Limpiar formulario y volver a dejar vista de login lista para la próxima vez
+        registerMerchantForm.reset();
+        registerMerchantBox.classList.add('hidden');
+        loginViewBox.classList.remove('hidden');
+
+        // Iniciar sesión automáticamente en su nuevo panel de Comerciante
+        state.authToken = data.token;
+        state.userRole = data.role || 'MERCHANT';
+        state.userName = data.userName || name;
+        state.clientId = null;
+        state.merchantId = data.merchantId || null;
+        unlockAppScreen();
+        await loadInitialState();
+        showAlert(`🎉 ${data.message || 'Cuenta de Comerciante creada con éxito.'}`, 'success', 9000);
+      } catch (err) {
+        errBox.textContent = 'Error de conexión con el servidor.';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🛡️ Crear Cuenta de Comerciante';
+      }
+    });
+  }
+
   // Botón Bloquear / Cerrar Sesión
   document.getElementById('btnLogout').addEventListener('click', async () => {
     try {
@@ -623,7 +704,7 @@ function renderMerchantsSection() {
   if (list.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-row">No hay comerciantes registrados todavía. Crea uno arriba asignándole nombre y clave.</td>
+        <td colspan="9" class="empty-row">No hay comerciantes registrados todavía. Crea uno arriba o permite que se registren desde el inicio.</td>
       </tr>
     `;
     return;
@@ -638,6 +719,8 @@ function renderMerchantsSection() {
       return `
         <tr>
           <td><strong>🛡️ ${escapeHtml(m.name)}</strong></td>
+          <td>${escapeHtml(m.fullName || '—')}</td>
+          <td>${escapeHtml(m.email || '—')}</td>
           <td><code>${escapeHtml(m.password)}</code></td>
           <td>${apiBadge}</td>
           <td class="text-center"><strong>${m.clientCount || 0}</strong> clientes</td>

@@ -104,18 +104,55 @@
             </svg>
           </div>
           <h2>MONITOR <span>USDT</span></h2>
-          <p class="text-muted">Ingresa tu clave de <strong>Comerciante</strong> o <strong>Cliente</strong> para acceder a tu panel contable y compras en tiempo real.</p>
 
-          <form id="loginForm" class="login-form">
-            <div class="input-with-btn">
-              <input type="password" id="loginPasswordInput" placeholder="Clave de acceso autorizada..." autocomplete="current-password" required autofocus />
-              <button type="button" class="btn-eye" data-target="loginPasswordInput">👁️</button>
+          <!-- Vista 1: Iniciar Sesión (Comerciantes, Clientes y Admin) -->
+          <div id="loginViewBox">
+            <p class="text-muted">Ingresa tu clave de <strong>Comerciante</strong> o <strong>Cliente</strong> para acceder a tu panel contable y compras en tiempo real.</p>
+
+            <form id="loginForm" class="login-form">
+              <div class="input-with-btn">
+                <input type="password" id="loginPasswordInput" placeholder="Clave de acceso autorizada..." autocomplete="current-password" required autofocus />
+                <button type="button" class="btn-eye" data-target="loginPasswordInput">👁️</button>
+              </div>
+              <div id="loginErrorMsg" class="login-error hidden">Clave de acceso incorrecta.</div>
+              <button type="submit" class="btn btn-start-cycle" id="btnLoginSubmit">
+                🔓 Acceder a Monitor USDT
+              </button>
+            </form>
+
+            <div class="merchant-register-cta">
+              <span>¿Eres Comerciante P2P y aún no tienes cuenta?</span>
+              <button type="button" class="btn btn-secondary btn-register-toggle" id="btnShowMerchantRegister">
+                🛡️ Registrarme como Comerciante
+              </button>
             </div>
-            <div id="loginErrorMsg" class="login-error hidden">Clave de acceso incorrecta.</div>
-            <button type="submit" class="btn btn-start-cycle" id="btnLoginSubmit">
-              🔓 Acceder a Monitor USDT
-            </button>
-          </form>
+          </div>
+
+          <!-- Vista 2: Registro Autónomo Exclusivo para Comerciantes -->
+          <div id="registerMerchantBox" class="hidden">
+            <p class="text-muted"><strong>Registro Exclusivo de Comerciante P2P</strong><br/>Crea tu cuenta para conectar tus APIs, registrar a tus clientes y gestionar tus ciclos.</p>
+
+            <form id="registerMerchantForm" class="login-form">
+              <input type="text" id="regFullNameInput" placeholder="Nombre y Apellido (Ej: Carlos Pérez)" autocomplete="name" required />
+              <input type="text" id="regMerchantNameInput" placeholder="Nombre de Comerciante (Ej: Carlos P2P)" autocomplete="organization" required />
+              <input type="email" id="regEmailInput" placeholder="Correo electrónico (Ej: carlos@correo.com)" autocomplete="email" required />
+              <div class="input-with-btn">
+                <input type="password" id="regPasswordInput" placeholder="Contraseña de acceso..." autocomplete="new-password" required />
+                <button type="button" class="btn-eye" data-target="regPasswordInput">👁️</button>
+              </div>
+              <div id="registerErrorMsg" class="login-error hidden"></div>
+              <button type="submit" class="btn btn-start-cycle" id="btnRegisterMerchantSubmit">
+                🛡️ Crear Cuenta de Comerciante
+              </button>
+            </form>
+
+            <div class="merchant-register-cta">
+              <button type="button" class="btn btn-outline btn-register-toggle" id="btnBackToLogin">
+                ← Ya tengo cuenta / Iniciar Sesión
+              </button>
+            </div>
+          </div>
+
           <div class="login-security-foot">
             <span>🛡️ Cifrado HMAC-SHA256</span>
             <span>•</span>
@@ -217,7 +254,9 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Nombre del Comerciante</th>
+              <th>Nombre de Comerciante</th>
+              <th>Nombre y Apellido</th>
+              <th>Correo</th>
               <th>Clave de Acceso</th>
               <th>Estado API Binance</th>
               <th class="text-center">Clientes Propios</th>
@@ -228,7 +267,7 @@
           </thead>
           <tbody id="merchantsTableBody">
             <tr>
-              <td colspan="7" class="empty-row">No hay comerciantes registrados todavía.</td>
+              <td colspan="9" class="empty-row">No hay comerciantes registrados todavía.</td>
             </tr>
           </tbody>
         </table>

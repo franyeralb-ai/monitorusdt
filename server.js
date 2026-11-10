@@ -212,6 +212,8 @@ function loadData() {
       ? parsed.merchants.map((m) => ({
           id: m.id,
           name: m.name,
+          fullName: m.fullName || '',
+          email: m.email || '',
           password: m.password,
           createdAt: m.createdAt || Date.now(),
           config: { ...defaultData.config, ...(m.config || {}) },
@@ -874,6 +876,97 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    // Registro directo y autónomo exclusivo para COMERCIANTES (sin requerir al Admin Supremo)
+    if (req.method === 'POST' && pathname === '/api/auth/register-merchant') {
+      const body = await readJsonBody(req);
+      const fullName = String(body.fullName || '').trim();
+      const name = String(body.name || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
+      const password = String(body.password || '').trim();
+
+      if (!fullName || !name || !email || !password) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'Debes completar todos los campos: Nombre y Apellido, Nombre de Comerciante, Correo y Contraseña.'
+        });
+      }
+
+      if (!email.includes('@') || !email.includes('.')) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'Ingresa un correo electrónico válido.'
+        });
+      }
+
+      const data = loadData();
+      const conflict = findPasswordConflict(data, password);
+      if (conflict) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'Esa contraseña ya está en uso. Por favor elige una contraseña diferente.'
+        });
+      }
+
+      const nameConflict = (data.merchants || []).find(
+        (m) => String(m.name || '').trim().toLowerCase() === name.toLowerCase()
+      );
+      if (nameConflict) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: `El nombre de comerciante "${name}" ya está registrado. Elige otro nombre.`
+        });
+      }
+
+      const emailConflict = (data.merchants || []).find(
+        (m) => String(m.email || '').trim().toLowerCase() === email
+      );
+      if (emailConflict) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'Ese correo electrónico ya tiene una cuenta de comerciante registrada.'
+        });
+      }
+
+      const newMerchant = {
+        id: `mer_${Date.now()}`,
+        name,
+        fullName,
+        email,
+        password,
+        createdAt: Date.now(),
+        config: {
+          apiKey: '',
+          secretKey: '',
+          defaultPayMethod: 'Banesco',
+          serviceFeePercent: 0.425
+        },
+        clients: [],
+        activeCycles: {
+          'Banesco': null,
+          'Banco de Venezuela': null
+        },
+        cycleHistory: []
+      };
+
+      data.merchants.push(newMerchant);
+      saveData(data);
+
+      const sessionPayload = {
+        role: 'MERCHANT',
+        userName: newMerchant.name,
+        clientId: null,
+        merchantId: newMerchant.id
+      };
+      const token = createAuthToken(sessionPayload);
+
+      return sendJson(res, 200, {
+        ok: true,
+        message: `¡Bienvenido, ${newMerchant.name}! Tu cuenta de Comerciante ha sido creada exitosamente.`,
+        ...sessionPayload,
+        token
+      });
+    }
+
     // Cerrar sesión
     if (req.method === 'POST' && pathname === '/api/logout') {
       return sendJson(res, 200, { ok: true });
@@ -917,6 +1010,8 @@ const server = http.createServer(async (req, res) => {
           ? (data.merchants || []).map((m) => ({
               id: m.id,
               name: m.name,
+              fullName: m.fullName || '',
+              email: m.email || '',
               password: m.password,
               createdAt: m.createdAt,
               clientCount: (m.clients || []).length,
@@ -984,6 +1079,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && pathname === '/api/merchants') {
       const body = await readJsonBody(req);
       const name = String(body.name || '').trim();
+      const fullName = String(body.fullName || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
       const password = String(body.password || '').trim();
 
       if (!name || !password) {
@@ -999,6 +1096,8 @@ const server = http.createServer(async (req, res) => {
       const newMerchant = {
         id: `mer_${Date.now()}`,
         name,
+        fullName,
+        email,
         password,
         createdAt: Date.now(),
         config: {
@@ -1024,6 +1123,8 @@ const server = http.createServer(async (req, res) => {
         merchants: data.merchants.map((m) => ({
           id: m.id,
           name: m.name,
+          fullName: m.fullName || '',
+          email: m.email || '',
           password: m.password,
           createdAt: m.createdAt,
           clientCount: (m.clients || []).length,
@@ -1064,6 +1165,8 @@ const server = http.createServer(async (req, res) => {
         merchants: data.merchants.map((m) => ({
           id: m.id,
           name: m.name,
+          fullName: m.fullName || '',
+          email: m.email || '',
           password: m.password,
           createdAt: m.createdAt,
           clientCount: (m.clients || []).length,
@@ -1086,6 +1189,8 @@ const server = http.createServer(async (req, res) => {
         merchants: data.merchants.map((m) => ({
           id: m.id,
           name: m.name,
+          fullName: m.fullName || '',
+          email: m.email || '',
           password: m.password,
           createdAt: m.createdAt,
           clientCount: (m.clients || []).length,

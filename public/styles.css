@@ -470,12 +470,46 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-.login-form {
+#loginViewBox,
+#registerMerchantBox {
   width: 100%;
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-form {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.merchant-register-cta {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.merchant-register-cta span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.btn-register-toggle {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 10px 14px;
 }
 
 .login-error {
