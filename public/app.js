@@ -1325,6 +1325,7 @@ function renderHistoryTable() {
           <td class="text-right">${formatVes(s.avgRateGross)}</td>
           <td class="text-center" style="white-space: nowrap;">
             ${verBtn}
+            <button class="btn-chip" onclick="exportSavedCycleInvoice('${c.id}')" title="Descargar Factura Estilo Fiscal de este ciclo">🧾 Factura</button>
             <button class="btn-chip" onclick="exportSavedCycleExcel('${c.id}')" title="Descargar Excel de este ciclo">📊 Excel</button>
             ${delBtn}
           </td>
@@ -1372,6 +1373,480 @@ window.deleteSavedCycle = async function (cycleId) {
     showAlert(`❌ Error eliminando ciclo: ${err.message}`, 'error');
   }
 };
+
+// Descargar Factura Estilo Fiscal (PNG de alta resolución con el logo y todos los KPIs del ciclo)
+window.exportSavedCycleInvoice = function (cycleId) {
+  const found = (state.cycleHistory || []).find((c) => c.id === cycleId);
+  if (!found) return;
+  generateFiscalInvoice({
+    cycleId: found.id,
+    cycleName: found.name,
+    clientName: found.clientName || 'General',
+    bankLabel: found.payMethod || 'Banesco',
+    startTime: found.startTime,
+    endTime: found.endTime,
+    summary: found.summary || {},
+    ordersCount: (found.orders && found.orders.length) || (found.summary && found.summary.orderCount) || 0
+  });
+};
+
+function generateFiscalInvoice({ cycleId, cycleName, clientName, bankLabel, startTime, endTime, summary: s, ordersCount }) {
+  const isOperator = isOperatorRole();
+  const upperBank = String(bankLabel || 'BANESCO').toUpperCase();
+
+  const totalVes = Number(s.totalVes || 0);
+  const totalUsdtGross = Number(s.totalUsdtGross || 0);
+  const totalUsdtNet = Number(s.totalUsdtNet || 0);
+  const totalCommissionUsdt = Number(s.totalCommissionUsdt || 0);
+  const totalCommissionVes = Number(s.totalCommissionVes || 0);
+
+  const avgRateGross = Number(s.avgRateGross || (totalUsdtGross > 0 ? totalVes / totalUsdtGross : 0));
+  const avgRateNet = Number(s.avgRateNet || (totalUsdtNet > 0 ? totalVes / totalUsdtNet : 0));
+  const totalClientFeeUsdt = s.totalClientFeeUsdt !== undefined
+    ? Number(s.totalClientFeeUsdt)
+    : totalUsdtGross * 0.00425;
+  const totalClientFeeVes = s.totalClientFeeVes !== undefined
+    ? Number(s.totalClientFeeVes)
+    : totalClientFeeUsdt * avgRateGross;
+
+  const totalMyCommissionUsdt = isOperator
+    ? (s.totalMyCommissionUsdt !== undefined ? Number(s.totalMyCommissionUsdt) : (totalClientFeeUsdt - totalCommissionUsdt))
+    : totalClientFeeUsdt;
+  const totalMyCommissionVes = isOperator
+    ? (s.totalMyCommissionVes !== undefined ? Number(s.totalMyCommissionVes) : totalMyCommissionUsdt * avgRateGross)
+    : totalClientFeeVes;
+
+  const totalClientUsdt = s.totalClientUsdt !== undefined
+    ? Number(s.totalClientUsdt)
+    : Math.max(0, totalUsdtGross - totalClientFeeUsdt);
+  const avgRateClient = s.avgRateClient !== undefined
+    ? Number(s.avgRateClient)
+    : (totalClientUsdt > 0 ? totalVes / totalClientUsdt : 0);
+
+  const dispCommBinUsdt = isOperator ? totalCommissionUsdt : 0;
+  const dispCommBinVes = isOperator ? formatVes(totalCommissionVes) : 'Bs. 0,00 (Asumida)';
+  const dispNetPurchased = isOperator ? totalUsdtNet : totalUsdtGross;
+  const dispAvgRateNet = isOperator ? avgRateNet : avgRateGross;
+
+  const controlNum = String(cycleId || Date.now()).replace(/\D/g, '').slice(-8).padStart(8, '0');
+  const orderTotalCount = Number(s.orderCount || ordersCount || 0);
+
+  // Crear lienzo de alta resolución (estilo factura fiscal moderna con tarjetas KPI)
+  const canvas = document.createElement('canvas');
+  const W = 1080;
+  const H = 1350;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Helper para rectángulos redondeados
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawDashedLine(x1, y, x2) {
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = '#CBD5E1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Fondo exterior gris claro
+  ctx.fillStyle = '#F1F5F9';
+  ctx.fillRect(0, 0, W, H);
+
+  // Papel principal de la factura fiscal
+  const padX = 44;
+  const padY = 36;
+  const cardW = W - padX * 2;
+  const cardH = H - padY * 2;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.10)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 8;
+  roundRect(padX, padY, cardW, cardH, 22);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.restore();
+
+  roundRect(padX, padY, cardW, cardH, 22);
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Banda superior azul corporativo
+  ctx.save();
+  roundRect(padX, padY, cardW, 152, 22);
+  ctx.clip();
+  const headerGrad = ctx.createLinearGradient(padX, padY, padX + cardW, padY + 152);
+  headerGrad.addColorStop(0, '#0F172A');
+  headerGrad.addColorStop(0.55, '#1E3A8A');
+  headerGrad.addColorStop(1, '#1D4ED8');
+  ctx.fillStyle = headerGrad;
+  ctx.fillRect(padX, padY, cardW, 152);
+  ctx.restore();
+
+  // Logo Oficial MONITOR USDT (Escudo + M + Triángulo Cyan)
+  const logoX = padX + 38;
+  const logoY = padY + 34;
+  const logoSize = 84;
+  ctx.save();
+  roundRect(logoX, logoY, logoSize, logoSize, 20);
+  const logoGrad = ctx.createLinearGradient(logoX, logoY, logoX + logoSize, logoY + logoSize);
+  logoGrad.addColorStop(0, '#1E293B');
+  logoGrad.addColorStop(1, '#2563EB');
+  ctx.fillStyle = logoGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Letra M geométrica blanca dentro del logo
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 8.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(logoX + 20, logoY + 62);
+  ctx.lineTo(logoX + 20, logoY + 24);
+  ctx.lineTo(logoX + 42, logoY + 46);
+  ctx.lineTo(logoX + 64, logoY + 24);
+  ctx.lineTo(logoX + 64, logoY + 62);
+  ctx.stroke();
+
+  // Triángulo cyan inferior del logo
+  ctx.fillStyle = '#38BDF8';
+  ctx.beginPath();
+  ctx.moveTo(logoX + 42, logoY + 52);
+  ctx.lineTo(logoX + 51, logoY + 65);
+  ctx.lineTo(logoX + 33, logoY + 65);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Títulos del encabezado
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('MONITOR', logoX + 104, logoY + 40);
+  const monWidth = ctx.measureText('MONITOR ').width;
+  ctx.fillStyle = '#38BDF8';
+  ctx.fillText('USDT', logoX + 104 + monWidth, logoY + 40);
+
+  ctx.fillStyle = '#CBD5E1';
+  ctx.font = '600 16px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('COMPROBANTE / FACTURA FISCAL DE LIQUIDACIÓN P2P', logoX + 104, logoY + 68);
+
+  // Recuadro derecho: N° Factura Fiscal
+  const badgeW = 250;
+  const badgeH = 84;
+  const badgeX = padX + cardW - badgeW - 36;
+  const badgeY = logoY;
+  roundRect(badgeX, badgeY, badgeW, badgeH, 14);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#94A3B8';
+  ctx.font = 'bold 13px "Consolas", monospace';
+  ctx.fillText('FACTURA / CONTROL N°', badgeX + badgeW / 2, badgeY + 28);
+  ctx.fillStyle = '#38BDF8';
+  ctx.font = 'bold 24px "Consolas", monospace';
+  ctx.fillText(`#00-${controlNum}`, badgeX + badgeW / 2, badgeY + 62);
+  ctx.textAlign = 'left';
+
+  // SECCIÓN DATOS DEL CICLO Y BANCO (Estilo Fiscal)
+  let curY = padY + 184;
+  const innerX = padX + 36;
+  const innerW = cardW - 72;
+
+  roundRect(innerX, curY, innerW, 170, 16);
+  ctx.fillStyle = '#F8FAFC';
+  ctx.fill();
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Columna Izquierda y Derecha de metadatos del ciclo
+  const col1X = innerX + 26;
+  const col2X = innerX + innerW / 2 + 16;
+
+  // Fila 1: Cliente y Banco
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('CLIENTE / TITULAR:', col1X, curY + 36);
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(String(clientName || 'General'), col1X + 165, curY + 36);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('BANCO / MÉTODO:', col2X, curY + 36);
+  ctx.fillStyle = '#1D4ED8';
+  ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(upperBank, col2X + 155, curY + 36);
+
+  drawDashedLine(innerX + 20, curY + 56, innerX + innerW - 20);
+
+  // Fila 2: Fecha y Hora de Inicio / Fecha y Hora de Fin
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('FECHA/HORA INICIO:', col1X, curY + 92);
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 17px "Consolas", monospace';
+  ctx.fillText(formatDateTime(startTime), col1X + 165, curY + 92);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('FECHA/HORA CIERRE:', col2X, curY + 92);
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 17px "Consolas", monospace';
+  ctx.fillText(formatDateTime(endTime), col2X + 165, curY + 92);
+
+  drawDashedLine(innerX + 20, curY + 114, innerX + innerW - 20);
+
+  // Fila 3: Ciclo y Total Órdenes Completadas
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('CICLO REGISTRADO:', col1X, curY + 148);
+  ctx.fillStyle = '#334155';
+  ctx.font = '600 16px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(String(cycleName || `Ciclo ${bankLabel}`).slice(0, 34), col1X + 165, curY + 148);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('ÓRDENES P2P:', col2X, curY + 148);
+  ctx.fillStyle = '#059669';
+  ctx.font = 'bold 17px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`${orderTotalCount} órdenes completadas (${bankLabel})`, col2X + 130, curY + 148);
+
+  // TÍTULO DE SECCIÓN CONTABLE
+  curY += 204;
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 18px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('DESGLOSE FISCAL DE LIQUIDACIÓN CONTABLE', innerX, curY);
+  curY += 18;
+
+  // FILA DE TARJETAS KPI 1 y 2 (Total VES Pagados + Tasa Promedio de Compra)
+  const halfW = (innerW - 24) / 2;
+  const boxH = 175;
+
+  // Tarjeta 1: TOTAL VES PAGADOS
+  roundRect(innerX, curY, halfW, boxH, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Borde superior naranja
+  ctx.fillStyle = '#D97706';
+  ctx.fillRect(innerX + 16, curY, halfW - 32, 5);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`TOTAL VES PAGADOS (${upperBank})`, innerX + 24, curY + 40);
+
+  ctx.fillStyle = '#B45309';
+  ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(formatVes(totalVes), innerX + 24, curY + 96);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 15px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`En ${orderTotalCount} órdenes completadas (${bankLabel})`, innerX + 24, curY + 142);
+
+  // Tarjeta 2: TASA PROMEDIO DE COMPRA
+  const card2X = innerX + halfW + 24;
+  roundRect(card2X, curY, halfW, boxH, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#2563EB';
+  ctx.fillRect(card2X + 16, curY, halfW - 32, 5);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('TASA PROMEDIO DE COMPRA', card2X + 24, curY + 40);
+
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`${formatVes(avgRateGross)} / USDT`, card2X + 24, curY + 96);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 14.5px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`Efectiva neta: ${formatVes(dispAvgRateNet)} • Con servicio: ${formatVes(avgRateClient)}`, card2X + 24, curY + 142);
+
+  // FILA DE TARJETAS KPI 3 y 4 (Neto Comprado + Comisiones Binance y Servicio)
+  curY += boxH + 22;
+
+  // Tarjeta 3: NETO COMPRADO
+  roundRect(innerX, curY, halfW, boxH, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#059669';
+  ctx.fillRect(innerX + 16, curY, halfW - 32, 5);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(isOperator ? `NETO COMPRADO (${upperBank})` : `TOTAL COMPRADO (${upperBank})`, innerX + 24, curY + 40);
+
+  ctx.fillStyle = '#059669';
+  ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(formatUsdt(dispNetPurchased), innerX + 24, curY + 96);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 15px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`Brutos en órdenes: ${formatUsdt(totalUsdtGross)}`, innerX + 24, curY + 142);
+
+  // Tarjeta 4: COMISIÓN BINANCE + COMISIÓN X SERVICIO (0.425%)
+  roundRect(card2X, curY, halfW, boxH, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#7C3AED';
+  ctx.fillRect(card2X + 16, curY, halfW - 32, 5);
+
+  // Sub-fila superior: Comisión Binance
+  ctx.fillStyle = '#475569';
+  ctx.font = 'bold 13.5px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('COMISIÓN BINANCE', card2X + 24, curY + 38);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#DC2626';
+  ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`${fmtCommUsdt.format(dispCommBinUsdt)} USDT`, card2X + halfW - 24, curY + 38);
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 13.5px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`Equivalente: ${dispCommBinVes}`, card2X + 24, curY + 64);
+
+  drawDashedLine(card2X + 20, curY + 84, card2X + halfW - 20);
+
+  // Sub-fila inferior: Comisión x Servicio (0.425%)
+  ctx.fillStyle = '#475569';
+  ctx.font = 'bold 13.5px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('COMISIÓN X SERVICIO (0.425%)', card2X + 24, curY + 116);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#6D28D9';
+  ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`${fmtCommUsdt.format(totalMyCommissionUsdt)} USDT`, card2X + halfW - 24, curY + 116);
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#B45309';
+  ctx.font = 'bold 13.5px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(`Equivalente: ${formatVes(totalMyCommissionVes)}`, card2X + 24, curY + 144);
+
+  // RECUADRO PRINCIPAL DESTACADO: ENVIAR AL CLIENTE (Liquidación Final)
+  curY += boxH + 26;
+  const totalBoxH = 160;
+  roundRect(innerX, curY, innerW, totalBoxH, 18);
+  const sendGrad = ctx.createLinearGradient(innerX, curY, innerX + innerW, curY + totalBoxH);
+  sendGrad.addColorStop(0, '#F0F9FF');
+  sendGrad.addColorStop(1, '#E0F2FE');
+  ctx.fillStyle = sendGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#0284C7';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#0369A1';
+  ctx.font = 'bold 16px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('📤 TOTAL LÍQUIDO — ENVIAR AL CLIENTE', innerX + 32, curY + 44);
+
+  ctx.fillStyle = '#0284C7';
+  ctx.font = 'bold 46px "Segoe UI", Arial, sans-serif';
+  ctx.fillText(formatUsdt(totalClientUsdt), innerX + 32, curY + 104);
+
+  ctx.fillStyle = '#334155';
+  ctx.font = '600 16px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('Neto descontando 0.425% de comisión de servicio (Comisión Binance asumida por el servicio)', innerX + 32, curY + 138);
+
+  // Sello de Estado Fiscal a la derecha dentro del recuadro
+  const stampW = 220;
+  const stampH = 66;
+  const stampX = innerX + innerW - stampW - 32;
+  const stampY = curY + 47;
+  roundRect(stampX, stampY, stampW, stampH, 12);
+  ctx.fillStyle = '#DCFCE7';
+  ctx.fill();
+  ctx.strokeStyle = '#10B981';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#047857';
+  ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
+  ctx.fillText('✅ CICLO COMPLETADO', stampX + stampW / 2, stampY + 29);
+  ctx.font = 'bold 13px "Consolas", monospace';
+  ctx.fillText('100% VERIFICADO', stampX + stampW / 2, stampY + 50);
+  ctx.textAlign = 'left';
+
+  // PIE DE FACTURA ESTILO FISCAL
+  curY += totalBoxH + 34;
+  drawDashedLine(innerX, curY, innerX + innerW);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#475569';
+  ctx.font = 'bold 14px "Consolas", monospace';
+  ctx.fillText(
+    `DOCUMENTO EMITIDO POR MONITOR USDT (MONITORUSDT.COM) • CONTROL FISCAL #00-${controlNum}`,
+    W / 2,
+    curY + 34
+  );
+  ctx.fillStyle = '#94A3B8';
+  ctx.font = '13px "Consolas", monospace';
+  ctx.fillText(
+    `Emitido el ${formatDateTime(Date.now())} • Liquidación verificada vía API Oficial Binance P2P`,
+    W / 2,
+    curY + 58
+  );
+  ctx.textAlign = 'left';
+
+  // Descargar automáticamente como imagen PNG nítida
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const cleanName = String(clientName || cycleName || bankLabel).replace(/[^a-zA-Z0-9_-]/g, '_');
+    link.download = `Factura_Fiscal_${cleanName}_${controlNum}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showAlert(`🧾 Factura Fiscal #00-${controlNum} descargada correctamente.`, 'success');
+  }, 'image/png');
+}
 
 // Exportar un ciclo específico del historial a Excel organizado
 window.exportSavedCycleExcel = function (cycleId) {
